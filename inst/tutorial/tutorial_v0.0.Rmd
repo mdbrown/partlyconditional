@@ -1,0 +1,106 @@
+---
+title: "Tutorial for R package `partlyconditional`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load package
+
+```{r}
+library("partlyconditional")
+```
+
+## Simulated data 
+```{r}
+data(pc_data)
+
+head(pc_data)
+```
+
+
+## Fit a partly conditional Cox model 
+
+```{r}
+
+pc.model.1 <-  PC.cox(
+        id = "sub.id",
+        stime = "time",
+        status = "status",
+        measurement.time = "log.meas.time",
+        markers = c("marker", "marker_2"),
+        data = pc_data,
+        use.BLUP = c(FALSE, FALSE),
+        knots.measurement.time = NA)
+
+pc.model.1
+
+pc.model.1$model.fit #access to the coxph model object
+```
+
+
+
+### Calculate BLUPs  
+
+```{r}
+
+pc.model.2 <-  PC.cox(
+        id = "sub.id",
+        stime = "time",
+        status = "status",
+        measurement.time = "log.meas.time",
+        markers = c("marker", "marker_2"),
+        data = pc_data,
+        use.BLUP = c(TRUE, TRUE),
+        knots.measurement.time = NA)
+
+pc.model.2
+
+pc.model.2$marker.blup.fit[[1]] #same for marker_2
+```
+
+
+### Model measurement time with natural cubic splines   
+
+```{r}
+
+pc.model.3 <-  PC.cox(
+        id = "sub.id",
+        stime = "time",
+        status = "status",
+        measurement.time = "log.meas.time",
+        markers = c("marker", "marker_2"),
+        data = pc_data,
+        use.BLUP = c(TRUE, TRUE),
+        knots.measurement.time = 3) #spline with three knots
+
+pc.model.3
+
+```
+
+
+
+## Make predictions
+
+```{r}
+
+
+aa
+newd <- filter(data, sub.id ==4)
+
+myp.1 <- predict(pc.model.2 , newdata  = newd, prediction.time = c(3,1,2, 4))
+myp
+
+```
+
+### Plot trajectory 
+
+```{r}
+
+```
+
+
+
+

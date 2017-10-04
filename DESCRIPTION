@@ -1,0 +1,14 @@
+Package: partlyconditional
+Type: Package
+Title: Partly Conditional Logistic and Cox models
+Version: 0.0
+Date: 2017-10-01
+Author: Marshall Brown, Marlena Mazieraz, Yingye Zheng
+Maintainer: Marshall Brown <mdbrown@fredhutch.org>
+Description: More later
+License: GPL-2
+URL: http://mdbrown.github.io/partlyconditional/, https://github.com/mdbrown/partlycondtional
+LazyData: TRUE
+Imports:
+    dplyr
+RoxygenNote: 6.0.1
