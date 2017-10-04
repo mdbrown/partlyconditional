@@ -1,6 +1,8 @@
 ---
 title: "Tutorial for R package `partlyconditional`"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -8,9 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Load package
+```{r eval = FALSE}
+###install 
+devtools::install_github("mdbrown/partlyconditional")
+
+```
 
 ```{r}
-library("partlyconditional")
+library(partlyconditional)
+library(tidyverse)
 ```
 
 ## Simulated data 
@@ -37,7 +45,7 @@ pc.model.1 <-  PC.cox(
 
 pc.model.1
 
-pc.model.1$model.fit #access to the coxph model object
+pc.model.1$model.fit #direct access to the coxph model object
 ```
 
 
@@ -58,6 +66,7 @@ pc.model.2 <-  PC.cox(
 
 pc.model.2
 
+#direct access to mixed effect model fits
 pc.model.2$marker.blup.fit[[1]] #same for marker_2
 ```
 
@@ -85,20 +94,49 @@ pc.model.3
 ## Make predictions
 
 ```{r}
+library(dplyr)
 
+newd <- filter(pc_data, sub.id ==9)
+newd
 
-aa
-newd <- filter(data, sub.id ==4)
+myp.1 <- predict(pc.model.1 , 
+                 newdata  = newd, 
+                 prediction.time = c(12))
+myp.1
 
-myp.1 <- predict(pc.model.2 , newdata  = newd, prediction.time = c(3,1,2, 4))
-myp
+myp.2 <- predict(pc.model.2 , 
+                 newdata  = newd, 
+                 prediction.time = c(12))
+myp.2
 
+myp.3 <- predict(pc.model.3 , 
+                 newdata  = newd, 
+                 prediction.time = c(12))
+myp.3
 ```
 
 ### Plot trajectory 
 
 ```{r}
 
+newd <- filter(pc_data, sub.id ==6)
+newd 
+
+#predict 1-12 month risk after 
+myp.traj.1 <- predict(pc.model.1 , newdata  = newd, prediction.time = c(1:12))
+myp.traj.2 <- predict(pc.model.2 , newdata  = newd, prediction.time = c(1:12))
+myp.traj.3 <- predict(pc.model.3 , newdata  = newd, prediction.time = c(1:12))
+
+myp.traj.1$model = "PC Cox model 1"
+myp.traj.2$model = "PC Cox model 2"
+myp.traj.3$model = "PC Cox model 3"
+
+myp.traj <- bind_rows(myp.traj.1, myp.traj.2, myp.traj.3)
+
+myp.traj %>% gather( "time_risk", "risk", risk_1:risk_12) %>% 
+   select(time_risk, risk, model) %>% 
+   transform(month = as.numeric(gsub("[^0-9]","", time_risk))) %>%
+  ggplot(aes(x = month, y = risk, color = model)) + geom_point() + geom_path() 
 ```
 
 

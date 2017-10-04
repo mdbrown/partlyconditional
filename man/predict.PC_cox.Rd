@@ -7,12 +7,14 @@
 \method{predict}{PC_cox}(object, newdata, prediction.time, ...)
 }
 \arguments{
-\item{object}{object of class 'PC.cox' fit using the 'PC.cox' function}
+\item{object}{object of class 'PC_cox' fit using the 'PC.cox' function}
 
-\item{prediction.time}{}
+\item{newdata}{data.frame with new data . All variables used to fit the PC.cox model must be present. Observations with missing data will be removed.}
+
+\item{prediction.time}{vector of prediction times to estimate future risk. Prediction time is defined from the most recent measurement time for each individual trajectory.}
 }
 \value{
-
+A data.frame consisting of one row for each individual (grouped by id), with predicted . BLUP and spline basis estimates and
 }
 \description{
 Estimate predicted absolute n-year risk from a PC.cox model object.

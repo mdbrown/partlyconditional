@@ -6,8 +6,8 @@
 #' @param stime name of survival time, may be repeated across subj. id.
 #' @param status name of survival status indicator, generally 1 = bad outcome/death, 0 alive/censored.
 #' @param measurement.time name of time of measurement from baseline.
-#' @param markers data.frame consisting of n x p markers with names.
-#' @param data data.frame
+#' @param markers character vector consisting of marker names to include.
+#' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
 #' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
 #' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the partly conditional Cox model. Set to 'NA' if no splines are to be used.
 #'
@@ -19,7 +19,9 @@
 #'
 #' @export
 #' @import dplyr
-#' @import nmle
+#' @import survival
+#' @import nlme lme
+#' @importFrom splines ns
 
 PC.cox <- function( id,
                     stime,
@@ -107,7 +109,7 @@ PC.cox <- function( id,
 
     my.data <- cbind(my.data, xx)
 
-    my.formula <- as.formula(paste0("Surv( t.star, ", status,") ~", names(xx), "+",
+    my.formula <- as.formula(paste0("Surv( t.star, ", status,") ~", paste(names(xx), collapse = " + "), "+",
                                     paste(marker.names, collapse = " + "),
                                     "+", "cluster(", id, ")"))
     #fit model using blups
@@ -137,6 +139,7 @@ PC.cox <- function( id,
 }
 
 #' print function for PC_cox
+#' @export
 
 print.PC_cox <- function(x, ...){
 
@@ -166,11 +169,11 @@ print.PC_cox <- function(x, ...){
 #'
 #' Estimate predicted absolute n-year risk from a PC.cox model object.
 #'
-#' @param object object of class 'PC.cox' fit using the 'PC.cox' function
-#' @param newdata data.frame with variables
-#' @param prediction.time time from baseline of prediction. This time should exceed all measurement times found in newdata.
+#' @param object object of class 'PC_cox' fit using the 'PC.cox' function
+#' @param newdata data.frame with new data . All variables used to fit the PC.cox model must be present. Observations with missing data will be removed.
+#' @param prediction.time vector of prediction times to estimate future risk. Prediction time is defined from the most recent measurement time for each individual trajectory.
 #'
-#' @return
+#' @return A data.frame consisting of one row for each individual (grouped by id), with predicted . BLUP and spline basis estimates and
 #'
 #' @export
 
@@ -190,7 +193,7 @@ predict.PC_cox <- function(object, newdata, prediction.time, ...){
   mycomplete <- complete.cases(newdata[,object$variable.names]);
 
   #check for missing data and throw it out, print a warning
-  if(nrow(data)!=sum(mycomplete)){
+  if(nrow(newdata)!=sum(mycomplete)){
     warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
     data <- data[mycomplete,]
 

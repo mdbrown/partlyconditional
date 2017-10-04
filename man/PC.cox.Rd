@@ -16,9 +16,9 @@ PC.cox(id, stime, status, measurement.time, markers, data,
 
 \item{measurement.time}{name of time of measurement from baseline.}
 
-\item{markers}{data.frame consisting of n x p markers with names.}
+\item{markers}{character vector consisting of marker names to include.}
 
-\item{data}{data.frame}
+\item{data}{data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.}
 
 \item{use.BLUP}{a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.}
 
