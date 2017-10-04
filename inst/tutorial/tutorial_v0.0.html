@@ -124,20 +124,8 @@ $(document).ready(function () {
 <h2>Load package</h2>
 <pre class="r"><code>###install 
 devtools::install_github(&quot;mdbrown/partlyconditional&quot;)</code></pre>
-<pre class="r"><code>library(partlyconditional)</code></pre>
-<pre><code>## Warning: replacing previous import 'dplyr::collapse' by 'nlme::collapse'
-## when loading 'partlyconditional'</code></pre>
-<pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## Loading tidyverse: ggplot2
-## Loading tidyverse: tibble
-## Loading tidyverse: tidyr
-## Loading tidyverse: readr
-## Loading tidyverse: purrr
-## Loading tidyverse: dplyr</code></pre>
-<pre><code>## Warning: package 'dplyr' was built under R version 3.4.2</code></pre>
-<pre><code>## Conflicts with tidy packages ----------------------------------------------</code></pre>
-<pre><code>## filter(): dplyr, stats
-## lag():    dplyr, stats</code></pre>
+<pre class="r"><code>library(partlyconditional)
+library(tidyverse)</code></pre>
 </div>
 <div id="simulated-data" class="section level2">
 <h2>Simulated data</h2>
@@ -303,27 +291,24 @@ newd</code></pre>
 ## 4      2.944439</code></pre>
 <pre class="r"><code>myp.1 &lt;- predict(pc.model.1 , 
                  newdata  = newd, 
-                 prediction.time = c(12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.1</code></pre>
+                 prediction.time = c(12))
+myp.1</code></pre>
 <pre><code>##   sub.id    marker meas.time     time status visit x1  x2 z1  marker_2
 ## 4      9 -0.510856        18 20.66679      1     4 18 324 18 0.1621595
 ##   log.meas.time   risk_12
 ## 4      2.944439 0.1451565</code></pre>
 <pre class="r"><code>myp.2 &lt;- predict(pc.model.2 , 
                  newdata  = newd, 
-                 prediction.time = c(12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.2</code></pre>
+                 prediction.time = c(12))
+myp.2</code></pre>
 <pre><code>##   sub.id    marker meas.time     time status visit x1  x2 z1  marker_2
 ## 4      9 -0.510856        18 20.66679      1     4 18 324 18 0.1621595
 ##   log.meas.time marker_BLUP marker_2_BLUP    risk_12
 ## 4      2.944439   0.7479781   0.004693731 0.09400671</code></pre>
 <pre class="r"><code>myp.3 &lt;- predict(pc.model.3 , 
                  newdata  = newd, 
-                 prediction.time = c(12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.3</code></pre>
+                 prediction.time = c(12))
+myp.3</code></pre>
 <pre><code>##   sub.id    marker meas.time     time status visit x1  x2 z1  marker_2
 ## 4      9 -0.510856        18 20.66679      1     4 18 324 18 0.1621595
 ##   log.meas.time marker_BLUP marker_2_BLUP meas.time.spline.basis1
@@ -357,13 +342,11 @@ newd </code></pre>
 ## 9       3.891820
 ## 10      4.007333</code></pre>
 <pre class="r"><code>#predict 1-12 month risk after 
-myp.traj.1 &lt;- predict(pc.model.1 , newdata  = newd, prediction.time = c(1:12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.traj.2 &lt;- predict(pc.model.2 , newdata  = newd, prediction.time = c(1:12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.traj.3 &lt;- predict(pc.model.3 , newdata  = newd, prediction.time = c(1:12))</code></pre>
-<pre><code>## Selecting by log.meas.time</code></pre>
-<pre class="r"><code>myp.traj.1$model = &quot;PC Cox model 1&quot;
+myp.traj.1 &lt;- predict(pc.model.1 , newdata  = newd, prediction.time = c(1:12))
+myp.traj.2 &lt;- predict(pc.model.2 , newdata  = newd, prediction.time = c(1:12))
+myp.traj.3 &lt;- predict(pc.model.3 , newdata  = newd, prediction.time = c(1:12))
+
+myp.traj.1$model = &quot;PC Cox model 1&quot;
 myp.traj.2$model = &quot;PC Cox model 2&quot;
 myp.traj.3$model = &quot;PC Cox model 3&quot;
 

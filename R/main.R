@@ -20,7 +20,8 @@
 #' @export
 #' @import dplyr
 #' @import survival
-#' @import nlme lme
+#' @importFrom nlme lme
+#' @importFrom nlme VarCorr
 #' @importFrom splines ns
 
 PC.cox <- function( id,

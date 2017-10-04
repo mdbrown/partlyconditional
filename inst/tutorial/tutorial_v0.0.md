@@ -12,37 +12,7 @@ devtools::install_github("mdbrown/partlyconditional")
 
 ```r
 library(partlyconditional)
-```
-
-```
-## Warning: replacing previous import 'dplyr::collapse' by 'nlme::collapse'
-## when loading 'partlyconditional'
-```
-
-```r
 library(tidyverse)
-```
-
-```
-## Loading tidyverse: ggplot2
-## Loading tidyverse: tibble
-## Loading tidyverse: tidyr
-## Loading tidyverse: readr
-## Loading tidyverse: purrr
-## Loading tidyverse: dplyr
-```
-
-```
-## Warning: package 'dplyr' was built under R version 3.4.2
-```
-
-```
-## Conflicts with tidy packages ----------------------------------------------
-```
-
-```
-## filter(): dplyr, stats
-## lag():    dplyr, stats
 ```
 
 ## Simulated data 
@@ -271,13 +241,6 @@ newd
 myp.1 <- predict(pc.model.1 , 
                  newdata  = newd, 
                  prediction.time = c(12))
-```
-
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.1
 ```
 
@@ -292,13 +255,6 @@ myp.1
 myp.2 <- predict(pc.model.2 , 
                  newdata  = newd, 
                  prediction.time = c(12))
-```
-
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.2
 ```
 
@@ -313,13 +269,6 @@ myp.2
 myp.3 <- predict(pc.model.3 , 
                  newdata  = newd, 
                  prediction.time = c(12))
-```
-
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.3
 ```
 
@@ -368,29 +317,9 @@ newd
 ```r
 #predict 1-12 month risk after 
 myp.traj.1 <- predict(pc.model.1 , newdata  = newd, prediction.time = c(1:12))
-```
-
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.traj.2 <- predict(pc.model.2 , newdata  = newd, prediction.time = c(1:12))
-```
-
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.traj.3 <- predict(pc.model.3 , newdata  = newd, prediction.time = c(1:12))
-```
 
-```
-## Selecting by log.meas.time
-```
-
-```r
 myp.traj.1$model = "PC Cox model 1"
 myp.traj.2$model = "PC Cox model 2"
 myp.traj.3$model = "PC Cox model 3"
