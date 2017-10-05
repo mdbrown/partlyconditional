@@ -1,6 +1,6 @@
 #' Fit a partly conditional Cox model
 #'
-#' later
+#' Fit a partly conditional (PC) Cox models. PC models are helpful predictive tools in (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods directly model the predictive probability conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
 #'
 #' @param id name of numeric subject id in data
 #' @param stime name of survival time, may be repeated across subj. id.
@@ -9,22 +9,50 @@
 #' @param markers character vector consisting of marker names to include.
 #' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
 #' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
-#' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the partly conditional Cox model. Set to 'NA' if no splines are to be used.
+#' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
 #'
 #'
-#' @return a 'PC_cox' model fit object, consisting of
+#' @return a 'PC_cox' model fit object, consisting of 'model.fit'
 #'
 #' @examples
+#'data(pc_data)
 #'
+#'pc.model.1 <-  PC.Cox(
+#'  id = "sub.id",
+#'  stime = "time",
+#'  status = "status",
+#'  measurement.time = "log.meas.time",
+#'  markers = c("marker", "marker_2"),
+#'  data = pc_data,
+#'  use.BLUP = c(FALSE, FALSE),
+#'  knots.measurement.time = NA)
 #'
-#' @export
+#'pc.model.1
+#'
+#'pc.model.1$model.fit #direct access to the coxph model object
+#'
+#'#fit a model using natural cubic splines to model measurement time
+#'# and BLUPs to smooth marker measurements.
+#'pc.model.2 <-  PC.Cox(
+#'  id = "sub.id",
+#'  stime = "time",
+#'  status = "status",
+#'  measurement.time = "meas.time",
+#'  markers = c("marker", "marker_2"),
+#'  data = pc_data,
+#'  use.BLUP = c(TRUE, TRUE),
+#'  knots.measurement.time = 3)
+#'
+#'pc.model.2
+#'
 #' @import dplyr
 #' @import survival
 #' @importFrom nlme lme
 #' @importFrom nlme VarCorr
 #' @importFrom splines ns
+#' @export
 
-PC.cox <- function( id,
+PC.Cox <- function( id,
                     stime,
                     status,
                     measurement.time,
@@ -168,13 +196,59 @@ print.PC_cox <- function(x, ...){
 
 #' Predict method for partly conditional cox models.
 #'
-#' Estimate predicted absolute n-year risk from a PC.cox model object.
+#' Estimate predicted absolute n-year risk from a PC.Cox model object.
 #'
-#' @param object object of class 'PC_cox' fit using the 'PC.cox' function
-#' @param newdata data.frame with new data . All variables used to fit the PC.cox model must be present. Observations with missing data will be removed.
-#' @param prediction.time vector of prediction times to estimate future risk. Prediction time is defined from the most recent measurement time for each individual trajectory.
+#' @param object object of class 'PC_cox' fit using the 'PC.Cox' function
+#' @param newdata data.frame with new data for which to calculate predictions. All variables used to fit the PC.Cox model must be present. Observations with missing data will be removed.
+#' @param prediction.time vector of prediction times (from marker measurement time) to estimate future risk. Prediction time is defined from time of measurement for each individual trajectory.
 #'
-#' @return A data.frame consisting of one row for each individual (grouped by id), with predicted . BLUP and spline basis estimates and
+#' @return A data.frame consisting of one row for each individual (grouped by id), with predicted risk estimates at the final observed measurement time for each individuals' marker trajectory. Risks are estimated for each 'prediction.time' from the last measurement time observed for each individual. Marker measurements, BLUP point estimates and spline bases for measurement times (if applicable) are provided on each observation as well.
+#'
+#'
+#' @note Marker measurements repeated over time are only needed, otherwise, just providing the most recent marker measurements is adquate.
+#'
+#' @examples
+#'data(pc_data)
+#'
+#'pc.model.1 <-  PC.Cox(
+#'  id = "sub.id",
+#'  stime = "time",
+#'  status = "status",
+#'  measurement.time = "log.meas.time",
+#'  markers = c("marker", "marker_2"),
+#'  data = pc_data,
+#'  use.BLUP = c(FALSE, FALSE),
+#'  knots.measurement.time = NA)
+#'
+#'pc.model.1
+#'
+#'newdata.subj.6 <- pc_data[pc_data$sub.id ==6,]
+#'#last marker measured at time '54', so predictions
+#'#will be conditional on surviving to time '54'
+#'newdata.subj.6
+#'
+#'#estimate 12 and 24 month risk from month 54
+#'#this pc model doesn't include BLUPs, so only the final marker
+#'#measurements are considered.
+#'predict(pc.model.1, newdata = newdata.subj.6, prediction.time = c(12, 24))
+#'
+#'
+#'#fit a model using natural cubic splines to model measurement time
+#'# and BLUPs to smooth marker measurements.
+#'pc.model.2 <-  PC.Cox(
+#'  id = "sub.id",
+#'  stime = "time",
+#'  status = "status",
+#'  measurement.time = "meas.time",
+#'  markers = c("marker", "marker_2"),
+#'  data = pc_data,
+#'  use.BLUP = c(TRUE, TRUE),
+#'  knots.measurement.time = 3)
+#'
+#'#BLUPs are used in this pc model so marker trajectory is needed for
+#'#BLUP estimation and risk prediction calculation
+#'predict(pc.model.2, newdata = newdata.subj.6, prediction.time = c(12, 24))
+#'
 #'
 #' @export
 

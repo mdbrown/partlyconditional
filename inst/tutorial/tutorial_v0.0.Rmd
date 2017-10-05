@@ -1,68 +1,139 @@
 ---
-title: "Tutorial for R package `partlyconditional`"
+title: "R package `partlyconditional`"
+date: "October 4, 2017"
 output: 
   html_document: 
     keep_md: yes
+    toc: yes
+    toc_float: yes 
+    collapsed: false
 ---
+
+# Introduction 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(width = 100)
 ```
 
-## Load package
+The `partlyconditional` R package provides model fitting methods for (medical) contexts where long term follow-up information is available on a patient population along with multiple measures of patient health and other biological markers collected across time. Interest lies in modeling a patients' future risk of an adverse event in the next $t_0$ time interval, given survival to time $s$, as a function of longitudinal marker history $H(s)$:  
+
+$$
+R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T > s, H(s))
+$$
+Where $T$ is time until the event of interest. 
+
+One approach is to use 'partly conditional' models, where risk is specified by first conditioning on the set of known marker history collected until time $s$. This package provides functions to fit two classes of partly conditional models; one based on logistic regression (`PC.logistic` (**coming soon**)), and another which models the conditional hazard of failure using a Cox proportional hazards model (`PC.Cox`).
+
+#### PC Cox models 
+
+The `PC.Cox` function fits a partly conditional Cox model of the form: 
+
+$$
+\lambda(\tau | H(s))  = \lambda_0(\tau) exp(\alpha B(s) + \beta Z + \gamma h(Y)) 
+$$
+
+where $\lambda_0$ is the unkown baseline hazard, $B(s)$ is a spline basis for the time of measurement, $Z$ includes covariate and patient information constant through time, and $h(Y)$ is a function of the marker values, such as last observed marker value or *best linear unbiased predictors* (see below). Absolute $\tau$ year estimates of risk conditional on measurement time $s$ are calculated using the Nelson-Aalen-Breslow estimator for a Cox PH model.  
+
+
+#### Smoothing marker trajectories with BLUPs. 
+
+Before fitting the PC model, functions also include procedures to smooth a marker $Y_i$'s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error. For each marker (specified by the user), we model the biomarker process using a linear mixed effect model of the form: 
+
+$$
+Y_i = 
+$$
+
+and estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ to be used to predict the event of interest. 
+
+Please see [references](#ref) below for further details. 
+
+
+
+#Tutorial 
+
+### Load package
+
+Package can be downloaded directly from Github using the `devtools` package. 
+
 ```{r eval = FALSE}
+library(devtools)
 ###install 
 devtools::install_github("mdbrown/partlyconditional")
 
 ```
 
+You can see the project code [here](https://github.com/mdbrown/partlyconditional)
+
+
 ```{r}
+#load libraries
 library(partlyconditional)
 library(tidyverse)
 ```
 
-## Simulated data 
+### Simulated data 
+
+For this tutorial, we use data on 478 simulated observations from 100 hypothetical individuals with repeated marker measurements. 'marker_1' was simulated to be associated with the outcome `status`, while 'marker_2' is pure noise. 
+
 ```{r}
 data(pc_data)
 
 head(pc_data)
 ```
 
+Note that `pc_data` is in 'long' format, with one row per measurement time. Each individual has a unique numeric subject id (`sub.id`) where event time (`time`) and event status (`status`) are repeated across marker measurement times (`meas.time`) given in months. `log.meas.time` is the transformation $log(s + 1)$ applied to the measurement time that we use for modeling. 
 
-## Fit a partly conditional Cox model 
+
+
+### Fit a partly conditional Cox model 
+
+
+We fit the model using the transformed  `log.meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
 
 ```{r}
 
-pc.model.1 <-  PC.cox(
+pc.model.1 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
         measurement.time = "log.meas.time",
-        markers = c("marker", "marker_2"),
+        markers = c("marker_1", "marker_2"),
         data = pc_data,
-        use.BLUP = c(FALSE, FALSE),
-        knots.measurement.time = NA)
+        use.BLUP = c(FALSE, FALSE), #no modeling of markers through time
+        knots.measurement.time = NA) #no spline used 
 
 pc.model.1
 
 pc.model.1$model.fit #direct access to the coxph model object
 ```
 
+We can access the objects in the model fit by using the `$` operator, since `PC.Cox` returns a list. See `names(pc.model.1)` to see all information recorded in the model fit. 
 
 
-### Calculate BLUPs  
+#### Calculate BLUPs  
+
+Instead of using raw marker values as predictors, which may have been measured with error, we first smooth marker measurements using mixed effect models univariately on each marker. We specify that BLUPs should be calculated for each marker by setting `use.BLUP = c(TRUE, TRUE)`. For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines. 
+
+For each marker with `use.BLUP` element equal to  `TRUE`, we model the marker as function of measurement time using: 
+
+```r
+lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)
+```
+and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. 
+
 
 ```{r}
 
-pc.model.2 <-  PC.cox(
+pc.model.2 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
-        measurement.time = "log.meas.time",
-        markers = c("marker", "marker_2"),
+        measurement.time = "meas.time",
+        markers = c("marker_1", "marker_2"),
         data = pc_data,
-        use.BLUP = c(TRUE, TRUE),
-        knots.measurement.time = NA)
+        use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
+        knots.measurement.time = 3) # model measurement time using splines 
 
 pc.model.2
 
@@ -71,67 +142,62 @@ pc.model.2$marker.blup.fit[[1]] #same for marker_2
 ```
 
 
-### Model measurement time with natural cubic splines   
+
+### Make predictions
+
+We can now use the model fits above and `predict` the risk at fixed prediction times conditional on marker history.  We first select some patients, for whom which we would like to calculate risk conditional on up to 18 months of marker data. 
 
 ```{r}
-
-pc.model.3 <-  PC.cox(
-        id = "sub.id",
-        stime = "time",
-        status = "status",
-        measurement.time = "log.meas.time",
-        markers = c("marker", "marker_2"),
-        data = pc_data,
-        use.BLUP = c(TRUE, TRUE),
-        knots.measurement.time = 3) #spline with three knots
-
-pc.model.3
-
+# choose to make predictions for subject id 3, 9 and 74
+#using marker measurements up to month 18
+newd <- dplyr::filter(pc_data, is.element(sub.id, c( 3, 9, 74)), meas.time <= 18)
+newd
 ```
 
+Next, we use `predict` to estimate 12 and 24 month risk conditional on last marker time measured. 
 
-
-## Make predictions
 
 ```{r}
-library(dplyr)
-
-newd <- filter(pc_data, sub.id ==9)
-newd
-
 myp.1 <- predict(pc.model.1 , 
                  newdata  = newd, 
-                 prediction.time = c(12))
-myp.1
-
-myp.2 <- predict(pc.model.2 , 
-                 newdata  = newd, 
-                 prediction.time = c(12))
-myp.2
-
-myp.3 <- predict(pc.model.3 , 
-                 newdata  = newd, 
-                 prediction.time = c(12))
-myp.3
+                 prediction.time = c(12, 24))
+#estimate risk conditional on last recorded measurement time
+#for each individual
+myp.1 
 ```
 
-### Plot trajectory 
+`predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
+
+If we make predictions from a model that includes BLUPs to smooth markers and/or splines to model measurement time, these transformations are included in the output. 
+
+```{r}
+myp.2 <- predict(pc.model.2 , 
+                 newdata  = newd, 
+                 prediction.time = c(12, 24))
+#also includes information on measurement time splines and 
+#marker blups 
+myp.2
+```
+
+
+
+#### Plot risk trajectory 
+
+Below we display some code that displays trajectory of risk for subject 9 estimated using both models. 
 
 ```{r}
 
-newd <- filter(pc_data, sub.id ==6)
+newd <- filter(pc_data, sub.id ==9, meas.time <=18)
 newd 
 
 #predict 1-12 month risk after 
 myp.traj.1 <- predict(pc.model.1 , newdata  = newd, prediction.time = c(1:12))
 myp.traj.2 <- predict(pc.model.2 , newdata  = newd, prediction.time = c(1:12))
-myp.traj.3 <- predict(pc.model.3 , newdata  = newd, prediction.time = c(1:12))
 
 myp.traj.1$model = "PC Cox model 1"
 myp.traj.2$model = "PC Cox model 2"
-myp.traj.3$model = "PC Cox model 3"
 
-myp.traj <- bind_rows(myp.traj.1, myp.traj.2, myp.traj.3)
+myp.traj <- bind_rows(myp.traj.1, myp.traj.2)
 
 myp.traj %>% gather( "time_risk", "risk", risk_1:risk_12) %>% 
    select(time_risk, risk, model) %>% 
@@ -139,6 +205,9 @@ myp.traj %>% gather( "time_risk", "risk", risk_1:risk_12) %>%
   ggplot(aes(x = month, y = risk, color = model)) + geom_point() + geom_path() 
 ```
 
+# References {#ref}
 
+Zheng YZ, Heagerty PJ. Partly conditional survival models for longitudinal data. Biometrics. 2005;61:379–391.
 
+Maziarz, M., Heagerty, P., Cai, T. and Zheng, Y. (2017), On longitudinal prediction with time-to-event outcome: Comparison of modeling options. Biom, 73: 83–93. doi:10.1111/biom.12562
 

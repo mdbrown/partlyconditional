@@ -2,7 +2,7 @@
 
 S3method(predict,PC_cox)
 S3method(print,PC_cox)
-export(PC.cox)
+export(PC.Cox)
 import(dplyr)
 import(survival)
 importFrom(nlme,VarCorr)
