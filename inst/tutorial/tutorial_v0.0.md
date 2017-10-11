@@ -4,15 +4,16 @@ October 4, 2017
 # Introduction 
 
 
+This package provides functions to fit partly conditional (PC) risk models, which are a helpful class of predictive models often used in medical contexts where long-term follow-up is available and interest lies in predicting patients' risks for a future adverse outcome using repeatedly measured predictors over time.
 
-The `partlyconditional` R package provides model fitting methods for (medical) contexts where long term follow-up information is available on a patient population along with multiple measures of patient health and other biological markers collected across time. Interest lies in modeling a patients' future risk of an adverse event in the next $t_0$ time interval, given survival to time $s$, as a function of longitudinal marker history $H(s)$:  
+The `partlyconditional` R package provides model fitting procedures for (medical) contexts where long term follow-up information is available on a patient population along with repeated measures of patient health and other biological markers collected across time. Interest lies in modeling a patients' future risk of an adverse event in the next $t_0$ time interval, given survival to time $s$, as a function of longitudinal marker history $H(s)$:  
 
 $$
 R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T > s, H(s))
 $$
 Where $T$ is time until the event of interest. 
 
-One approach is to use 'partly conditional' models, where risk is specified by first conditioning on the set of known marker history collected until time $s$. This package provides functions to fit two classes of partly conditional models; one based on logistic regression (`PC.logistic` (**coming soon**)), and another which models the conditional hazard of failure using a Cox proportional hazards model (`PC.Cox`).
+One approach is to use 'partly conditional' models, where risk is specified by first conditioning on the set of known marker history collected until time $s$. This package provides functions to fit two classes of partly conditional models; one based on logistic regression (`PC.logistic` **coming soon**), and another which models the conditional hazard of failure using a Cox proportional hazards model (`PC.Cox`).
 
 #### PC Cox models 
 
@@ -22,18 +23,19 @@ $$
 \lambda(\tau | H(s))  = \lambda_0(\tau) exp(\alpha B(s) + \beta Z + \gamma h(Y)) 
 $$
 
-where $\lambda_0$ is the unkown baseline hazard, $B(s)$ is a spline basis for the time of measurement, $Z$ includes covariate and patient information constant through time, and $h(Y)$ is a function of the marker values, such as last observed marker value or *best linear unbiased predictors* (see below). Absolute $\tau$ year estimates of risk conditional on measurement time $s$ are calculated using the Nelson-Aalen-Breslow estimator for a Cox PH model.  
+where $\lambda_0$ is the unkown baseline hazard, $B(s)$ is a spline basis for the time of measurement, $Z$ includes covariate and patient information constant through time, and $h(Y)$ is a function of the marker values, such as last observed marker value or a smoothed marker value (see below). Absolute $\tau$ year estimates of risk conditional on measurement time $s$ are calculated using the Breslow estimator.  
 
 
 #### Smoothing marker trajectories with BLUPs. 
 
-Before fitting the PC model, functions also include procedures to smooth a marker $Y_i$'s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error. For each marker (specified by the user), we model the biomarker process using a linear mixed effect model of the form: 
+Before fitting the PC model, `partlyconditional` functions include procedures to smooth a marker $Y_i$'s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error. For each marker $Y$, we model the biomarker process using a linear mixed effect model of the form: 
 
 $$
-Y_i = 
+Y_{ij} = \beta_0 + \beta_1 M_{j} + u_{0i} + u_{1i}M_j + \varepsilon_{ij}
 $$
+for measurement $j$ recorded from subject $i$ at measurement time $M_j$. The measurement error, $\varepsilon_{ij}$, is assumed to have a normal distribution. As shown above, we model marker trajectories using fixed intercept and linear effect of measurement time ($\beta_0$ and $\beta_1$) along with random intercepts and slopes that vary across individuals ($u_{0i}$ and $u_{1_i}$). 
 
-and estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ to be used to predict the event of interest. 
+To obtain smoothed marker values to use for a new prediction, we use these mixed effect models to estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ using the known marker values recorded up to some time $s$. 
 
 Please see [references](#ref) below for further details. 
 
@@ -52,7 +54,7 @@ library(devtools)
 devtools::install_github("mdbrown/partlyconditional")
 ```
 
-You can see the project code [here](https://github.com/mdbrown/partlyconditional)
+All package code is also available [here](https://github.com/mdbrown/partlyconditional). 
 
 
 

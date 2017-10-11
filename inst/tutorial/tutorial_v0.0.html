@@ -221,26 +221,27 @@ div.tocify {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>The <code>partlyconditional</code> R package provides model fitting methods for (medical) contexts where long term follow-up information is available on a patient population along with multiple measures of patient health and other biological markers collected across time. Interest lies in modeling a patients’ future risk of an adverse event in the next <span class="math inline">\(t_0\)</span> time interval, given survival to time <span class="math inline">\(s\)</span>, as a function of longitudinal marker history <span class="math inline">\(H(s)\)</span>:</p>
+<p>This package provides functions to fit partly conditional (PC) risk models, which are a helpful class of predictive models often used in medical contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time.</p>
+<p>The <code>partlyconditional</code> R package provides model fitting procedures for (medical) contexts where long term follow-up information is available on a patient population along with repeated measures of patient health and other biological markers collected across time. Interest lies in modeling a patients’ future risk of an adverse event in the next <span class="math inline">\(t_0\)</span> time interval, given survival to time <span class="math inline">\(s\)</span>, as a function of longitudinal marker history <span class="math inline">\(H(s)\)</span>:</p>
 <p><span class="math display">\[
 R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T &gt; s, H(s))
 \]</span> Where <span class="math inline">\(T\)</span> is time until the event of interest.</p>
-<p>One approach is to use ‘partly conditional’ models, where risk is specified by first conditioning on the set of known marker history collected until time <span class="math inline">\(s\)</span>. This package provides functions to fit two classes of partly conditional models; one based on logistic regression (<code>PC.logistic</code> (<strong>coming soon</strong>)), and another which models the conditional hazard of failure using a Cox proportional hazards model (<code>PC.Cox</code>).</p>
+<p>One approach is to use ‘partly conditional’ models, where risk is specified by first conditioning on the set of known marker history collected until time <span class="math inline">\(s\)</span>. This package provides functions to fit two classes of partly conditional models; one based on logistic regression (<code>PC.logistic</code> <strong>coming soon</strong>), and another which models the conditional hazard of failure using a Cox proportional hazards model (<code>PC.Cox</code>).</p>
 <div id="pc-cox-models" class="section level4">
 <h4>PC Cox models</h4>
 <p>The <code>PC.Cox</code> function fits a partly conditional Cox model of the form:</p>
 <p><span class="math display">\[
 \lambda(\tau | H(s))  = \lambda_0(\tau) exp(\alpha B(s) + \beta Z + \gamma h(Y)) 
 \]</span></p>
-<p>where <span class="math inline">\(\lambda_0\)</span> is the unkown baseline hazard, <span class="math inline">\(B(s)\)</span> is a spline basis for the time of measurement, <span class="math inline">\(Z\)</span> includes covariate and patient information constant through time, and <span class="math inline">\(h(Y)\)</span> is a function of the marker values, such as last observed marker value or <em>best linear unbiased predictors</em> (see below). Absolute <span class="math inline">\(\tau\)</span> year estimates of risk conditional on measurement time <span class="math inline">\(s\)</span> are calculated using the Nelson-Aalen-Breslow estimator for a Cox PH model.</p>
+<p>where <span class="math inline">\(\lambda_0\)</span> is the unkown baseline hazard, <span class="math inline">\(B(s)\)</span> is a spline basis for the time of measurement, <span class="math inline">\(Z\)</span> includes covariate and patient information constant through time, and <span class="math inline">\(h(Y)\)</span> is a function of the marker values, such as last observed marker value or a smoothed marker value (see below). Absolute <span class="math inline">\(\tau\)</span> year estimates of risk conditional on measurement time <span class="math inline">\(s\)</span> are calculated using the Breslow estimator.</p>
 </div>
 <div id="smoothing-marker-trajectories-with-blups." class="section level4">
 <h4>Smoothing marker trajectories with BLUPs.</h4>
-<p>Before fitting the PC model, functions also include procedures to smooth a marker <span class="math inline">\(Y_i\)</span>’s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error. For each marker (specified by the user), we model the biomarker process using a linear mixed effect model of the form:</p>
+<p>Before fitting the PC model, <code>partlyconditional</code> functions include procedures to smooth a marker <span class="math inline">\(Y_i\)</span>’s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error. For each marker <span class="math inline">\(Y\)</span>, we model the biomarker process using a linear mixed effect model of the form:</p>
 <p><span class="math display">\[
-Y_i = 
-\]</span></p>
-<p>and estimate the best linear unbiased predictors (BLUPs) <span class="math inline">\(\hat{h}(Y)\)</span> to be used to predict the event of interest.</p>
+Y_{ij} = \beta_0 + \beta_1 M_{j} + u_{0i} + u_{1i}M_j + \varepsilon_{ij}
+\]</span> for measurement <span class="math inline">\(j\)</span> recorded from subject <span class="math inline">\(i\)</span> at measurement time <span class="math inline">\(M_j\)</span>. The measurement error, <span class="math inline">\(\varepsilon_{ij}\)</span>, is assumed to have a normal distribution. As shown above, we model marker trajectories using fixed intercept and linear effect of measurement time (<span class="math inline">\(\beta_0\)</span> and <span class="math inline">\(\beta_1\)</span>) along with random intercepts and slopes that vary across individuals (<span class="math inline">\(u_{0i}\)</span> and <span class="math inline">\(u_{1_i}\)</span>).</p>
+<p>To obtain smoothed marker values to use for a new prediction, we use these mixed effect models to estimate the best linear unbiased predictors (BLUPs) <span class="math inline">\(\hat{h}(Y)\)</span> using the known marker values recorded up to some time <span class="math inline">\(s\)</span>.</p>
 <p>Please see <a href="#ref">references</a> below for further details.</p>
 </div>
 </div>
@@ -252,7 +253,7 @@ Y_i =
 <pre class="r"><code>library(devtools)
 ###install 
 devtools::install_github(&quot;mdbrown/partlyconditional&quot;)</code></pre>
-<p>You can see the project code <a href="https://github.com/mdbrown/partlyconditional">here</a></p>
+<p>All package code is also available <a href="https://github.com/mdbrown/partlyconditional">here</a>.</p>
 <pre class="r"><code>#load libraries
 library(partlyconditional)
 library(tidyverse)</code></pre>

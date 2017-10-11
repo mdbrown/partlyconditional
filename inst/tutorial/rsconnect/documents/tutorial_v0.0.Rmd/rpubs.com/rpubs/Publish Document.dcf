@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/315554/4355d615dff141a48cd975b5e3dd1af0
+bundleId: https://api.rpubs.com/api/v1/document/315554/4355d615dff141a48cd975b5e3dd1af0
+url: http://rpubs.com/mdbrown/315554
+when: 1507236874.15045
