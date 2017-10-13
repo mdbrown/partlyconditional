@@ -152,13 +152,14 @@ pc.cox.2$marker.blup.fit[[1]] #same for marker_2
 
 ```{r}
 
+
 pc.glm.1 <-  PC.GLM(
         id = "sub.id",
         stime = "time",
         status = "status",
         measurement.time = "log.meas.time",
         markers = c("marker_1", "marker_2"),
-        prediction.time = 3, 
+        prediction.time = 24, 
         data = pc_data,
         knots.measurement.time = NA) #no spline used 
 
@@ -177,7 +178,8 @@ pc.glm.2 <-  PC.GLM(
         measurement.time = "meas.time",
         markers = c("marker_1", "marker_2"),
         data = pc_data,
-        prediction.time = 3, 
+        prediction.time = 24, 
+        use.BLUP = c(TRUE,  FALSE), 
         knots.measurement.time = 3) # model measurement time using splines 
 
 pc.glm.2
@@ -200,12 +202,18 @@ Next, we use `predict` to estimate 12 and 24 month risk conditional on last mark
 
 
 ```{r}
-myp.1 <- predict(pc.cox.1 , 
+risk.cox.1 <- predict(pc.cox.1 , 
                  newdata  = newd, 
-                 prediction.time = c(12, 24))
+                 prediction.time = c( 24))
 #estimate risk conditional on last recorded measurement time
 #for each individual
-myp.1 
+risk.cox.1 
+
+#prediction time is already specified to fit model 
+risk.glm.1 <- predict(pc.glm.1 , 
+                 newdata  = newd)
+
+risk.glm.1
 ```
 
 `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 

@@ -56,7 +56,7 @@ preGLM.FUN <- function(data, covariate.ix, tau, n.digits = 6){
   # remove those who are censored and have been lost to followup before s + t
   rm.yes <- (1-di)*(data[[2]] < si + tau)
 
-  working.dataset <- data.frame(ID = ID, yi = yi, Si = data[[4]], si = si, xi = xi, di = di, zi = zi)[rm.yes != 1, ]
+  working.dataset <- data.frame(ID = ID, yi = yi, Si = data[[4]], si = si, xi = xi, di = di, zi)[rm.yes != 1, ]
 
   return(list(working.dataset = working.dataset,
               xi.Ghat = xi.Ghat,

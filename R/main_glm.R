@@ -10,11 +10,12 @@
 #' @param measurement.time name of time of measurement from baseline.
 #' @param markers character vector consisting of marker names to include.
 #' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
+#' @param prediction.time numeric value for the prediction time of interest to fit the PC logistic model.
 #' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
 #' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
 #'
 #'
-#' @return a 'PC_cox' model fit object, consisting of 'model.fit'
+#' @return a 'PC_GLM' model fit object, with elements 'model.fit'
 #'
 #' @examples
 #'data(pc_data)
@@ -62,6 +63,7 @@ PC.GLM <- function( id,
                     markers,
                     data,
                     prediction.time,
+                    use.BLUP = rep(FALSE, length(markers)),
                     knots.measurement.time = NULL){
 
   call <- match.call()
@@ -73,7 +75,7 @@ PC.GLM <- function( id,
   stopifnot(is.numeric(prediction.time))
   stopifnot(length(prediction.time) ==1)
 
-
+  stopifnot(length(use.BLUP)== length(markers))
   #checkc to see if all variables are present in data
   tmpnames <- c(id, stime, status, measurement.time, markers)
   if(!all(is.element(tmpnames, names(data)))) stop(paste("'", tmpnames[which(!is.element(tmpnames, names(data)))], "' cannot be found in data.frame provided", sep = ""))
@@ -98,9 +100,41 @@ PC.GLM <- function( id,
   names(my.data) <- c(id, stime, status, measurement.time, "t.star")
 
   X.fit <- data[, markers]
-  marker.names <- names(X.fit)
 
+  ### blups
+  mle.fit = list()
+
+  names(X.fit)[use.BLUP] <- paste0(names(X.fit)[use.BLUP], "_BLUP")
+
+  for(xxind in 1:length(markers)){
+
+    #calculate blups if needed
+    if(use.BLUP[xxind]){
+      cat("...Calculating Best Linear Unbiased Predictors (BLUP's) for marker: ", markers[[xxind]]) ; cat("\n")
+      #calculate blup for each marker
+
+
+      marker.name <- names(X.fit)[xxind]
+      my.data[[marker.name]] <- X.fit[,xxind]
+      # get fitted values for the marker in the training set
+      m1 <- try(lme(as.formula(paste0(marker.name, "~ 1 +",  measurement.time)),
+                    random = as.formula(paste("~ 1 +",measurement.time, "|", id)),
+                    data = my.data))
+      mle.fit[[xxind]] <- m1
+      X.fit[[xxind]] <- get.lme.blup.fitted.1.covariate(my.data, m1,
+                                                        id = id,
+                                                        marker = marker.name,
+                                                        measurement.time = measurement.time)
+
+    }else{
+      mle.fit[[xxind]] <- NA
+    }
+
+  }
+  marker.names <- names(X.fit)
   my.data <- cbind(my.data, X.fit)
+  ## end blups
+
 
   #### preGLM fun ####
   glm.data <- preGLM.FUN(my.data,  tau = prediction.time)
@@ -113,7 +147,7 @@ PC.GLM <- function( id,
   ###########
   yi <- glm.data$working.dataset$yi # status of event before s + t
   xi <- glm.data$working.dataset$xi # time
-  # di <- data$working.dataset$di # status
+  di <- glm.data$working.dataset$di # status
   si <- glm.data$working.dataset$si # meas.time
 
 
@@ -126,34 +160,37 @@ PC.GLM <- function( id,
   #mb oct 11, 2017
   wgt.IPW <- IPW.FUN(xi.Ghat, di.Ghat, xi,
                      round(si+prediction.time, digits = 6),
-                     my.data[[status]],
+                     di,
                      si)
 
 
   #fit cox model using raw marker data
   if(is.numeric(knots.measurement.time)){
     ## spline for measurement time
-    meas.time.spline.basis <- ns(my.data[[measurement.time]],
+    meas.time.spline.basis <- ns(xi,
                                  df = knots.measurement.time)
     xx <- as.data.frame(meas.time.spline.basis)
     names(xx) = paste0("meas.time.spline.basis", 1:ncol(xx))
 
-    my.data <- cbind(my.data, xx)
-
+    glm.data$working.dataset <- cbind(glm.data$working.dataset, xx)
 
 
 
     fmla <- as.formula(paste0("yi ~", paste(names(xx), collapse = " + "), "+",
                                     paste(marker.names, collapse = " + ")))
 
-    fit <- glm(fmla, weights = wgt.IPW, data = my.data, family = "binomial")
+
+
+    fit <- glm(fmla, weights = wgt.IPW, data = glm.data$working.dataset, family = "binomial")
 
 
   }else{
 
+
+    names(glm.data$working.dataset)[5] <- measurement.time
     fmla <- as.formula(paste0("yi ~", measurement.time, "+", paste(marker.names, collapse = " + ")))
-    #fit model using blups
-    fit <- glm(fmla, weights = wgt.IPW, data = my.data, family = "binomial")
+    #fit model using blupss
+    fit <- glm(fmla, weights = wgt.IPW, data = glm.data$working.dataset, family = "binomial")
     meas.time.spline.basis <- NULL #nothing to put here
   }
 
@@ -163,9 +200,12 @@ PC.GLM <- function( id,
 
 
   out <- list( model.fit = fit,
+               marker.blup.fit = mle.fit,
                meas.time.spline = meas.time.spline.basis,
                call = call,
                variable.names = c(id, stime, status, measurement.time, markers),
+               prediction.time = prediction.time,
+               use.BLUP = use.BLUP,
                knots.measurement.time = knots.measurement.time)
   class(out) <- "PC_GLM"
 
@@ -183,7 +223,23 @@ print.PC_GLM <- function(x, ...){
   print(x$call)
   cat("\n")
 
-  cat("### Partly conditional Logistic model:\n")
+
+  if(any(x$use.BLUP)){
+    cat("### BLUPs fit for marker(s): ")
+    for(i in 1:length(x$use.BLUP)){
+      if(x$use.BLUP[i]) {
+        cat("", x$variable.names[i+4],"")
+
+        #print(x$marker.blup.fit[[i]])
+
+      }
+    }
+    cat("\n   See x$marker.blup.fit for details on mixed effect model fits. \n\n")
+  }
+
+
+  cat("### Partly conditional Logistic model\n")
+  cat("###  for prediction time:", x$prediction.time, "\n")
 
   print(summary(x$model.fit)$coef)
 }
@@ -275,6 +331,27 @@ predict.PC_GLM <- function(object, newdata, ...){
   names(my.data) <- c(object$variable.names[1:4], "t.star")
   my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)]])
 
+  #fit blups if needed
+  if(any(object$use.BLUP)){
+
+    for(i in 1:length(object$use.BLUP)){
+      if(object$use.BLUP[i]){
+
+        marker.name <- object$variable.names[i + 4]
+        # get fitted values for the marker in the training set
+        m1 <- object$marker.blup.fit[[i]]
+
+        newdata[[paste0(marker.name, "_BLUP")]] <- get.lme.blup.fitted.1.covariate(my.data,
+                                                                                   m1,
+                                                                                   id = object$variable.names[1],
+                                                                                   marker = marker.name,
+                                                                                   measurement.time = object$variable.names[4])
+
+
+      }
+    }
+
+  }
 
 
   #measurement times:
@@ -318,32 +395,12 @@ predict.PC_GLM <- function(object, newdata, ...){
 
   #return risk
   ##########
-
-  beta  <- fit$coef
-  predp.tau.s0.y0 <- NULL
-
-  if(!is.null(s.vec)){
-    bs0 <- predict(bs.vec, s.vec)
-    ns0 <- length(s.vec)
-    ny0 <- length(y.vec)
-
-    ui0 <- NULL
-    for(j in 1:ny0){
-      ui0 <- rbind(ui0, cbind(bs0, rep(y.vec[j], ns0)))
-    }
-
-    ui0 <- cbind(1, ui0)
-    predp.tau.s0.y0 <- g.logit(ui0 %*% beta)
-  }
-
-  return(list(beta = beta, predp.tau.s0.y0 = predp.tau.s0.y0, predp.tau.i = predp.tau.i))
-
-  ############
+    aa <- data.frame( r = predict(object$model.fit, newdata = d.test.s.last.obs, type = "response"))
 
 
 
-    aa <- as.data.frame(t(1-aa$surv))
-  names(aa) <- paste0("risk_", prediction.time)
+
+  names(aa) <- paste0("risk_", object$prediction.time)
 
   out <- cbind(d.test.s.last.obs, aa)
 

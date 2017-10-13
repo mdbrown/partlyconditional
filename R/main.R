@@ -106,7 +106,9 @@ PC.Cox <- function( id,
     cat("...Calculating Best Linear Unbiased Predictors (BLUP's) for marker: ", markers[[xxind]]) ; cat("\n")
     #calculate blup for each marker
 
-
+      if(!is.numeric(X.fit[[,xxind]])){
+        stop("Marker must be numeric for BLUP calculation.")
+      }
       marker.name <- names(X.fit)[xxind]
       my.data[[marker.name]] <- X.fit[,xxind]
       # get fitted values for the marker in the training set
