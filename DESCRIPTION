@@ -1,11 +1,11 @@
 Package: partlyconditional
 Type: Package
 Title: Partly Conditional Logistic and Cox models
-Version: 0.0
-Date: 2017-10-01
+Version: 0.1
+Date: 2017-10-17
 Author:  Marlena Maziarz, Yingye Zheng, Marshall Brown
 Maintainer: Marshall Brown <mdbrown@fredhutch.org>
-Description: This package provides functions to fit partly conditional (PC) risk models, which are a helpful class of predictive models often used in medical contexts where long-term follow-up is available and interest lies in predicting patients' risks for a future adverse outcome using repeatedly measured predictors over time. Please see the reference Zheng YZ, Heagerty PJ (2005) <doi: 10.1111/j.1541-0420.2005.00323.x>  or Maziarz M, et. al. (2017) <doi:10.1111/biom.12562> for further details. 
+Description: This package provides functions to fit partly conditional (PC) risk models, which are a class of predictive models often used in medical contexts where long-term follow-up is available and interest lies in predicting patients' risks for a future adverse outcome using repeatedly measured predictors over time. Please see the reference Zheng YZ, Heagerty PJ (2005) <doi: 10.1111/j.1541-0420.2005.00323.x>  or Maziarz M, et. al. (2017) <doi:10.1111/biom.12562> for further details. 
 License: GPL-2
 URL: http://mdbrown.github.io/partlyconditional/, https://github.com/mdbrown/partlycondtional
 LazyData: TRUE

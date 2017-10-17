@@ -117,6 +117,35 @@ pc.cox.1$model.fit #direct access to the coxph model object
 We can access the objects in the model fit by using the `$` operator, since `PC.Cox` returns a list. See `names(pc.cox.1)` to see all information recorded in the model fit. 
 
 
+
+
+
+### Fit a PC GLM model 
+
+```{r}
+
+
+pc.glm.1 <-  PC.GLM(
+        id = "sub.id",
+        stime = "time",
+        status = "status",
+        measurement.time = "log.meas.time",
+        markers = c("marker_1", "marker_2"),
+        prediction.time = 24, 
+        data = pc_data,
+        knots.measurement.time = NA) #no spline used 
+
+pc.glm.1
+
+pc.glm.1$model.fit #direct access to the glm model object
+```
+
+
+
+
+
+
+
 #### Calculate BLUPs  
 
 Instead of using raw marker values as predictors, which may have been measured with error, we first smooth marker measurements using mixed effect models univariately on each marker. We specify that BLUPs should be calculated for each marker by setting `use.BLUP = c(TRUE, TRUE)`. For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines. 
@@ -145,27 +174,6 @@ pc.cox.2
 
 #direct access to mixed effect model fits
 pc.cox.2$marker.blup.fit[[1]] #same for marker_2
-```
-
-
-### Fit a PC GLM model 
-
-```{r}
-
-
-pc.glm.1 <-  PC.GLM(
-        id = "sub.id",
-        stime = "time",
-        status = "status",
-        measurement.time = "log.meas.time",
-        markers = c("marker_1", "marker_2"),
-        prediction.time = 24, 
-        data = pc_data,
-        knots.measurement.time = NA) #no spline used 
-
-pc.glm.1
-
-pc.glm.1$model.fit #direct access to the glm model object
 ```
 
 

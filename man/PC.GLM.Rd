@@ -2,9 +2,10 @@
 % Please edit documentation in R/main_glm.R
 \name{PC.GLM}
 \alias{PC.GLM}
-\title{Fit a partly conditional Cox model}
+\title{Fit a partly conditional GLM (logistic) model}
 \usage{
-PC.GLM(id, stime, status, measurement.time, markers, data, prediction.time)
+PC.GLM(id, stime, status, measurement.time, markers, data, prediction.time,
+  use.BLUP = rep(FALSE, length(markers)), knots.measurement.time = NULL)
 }
 \arguments{
 \item{id}{name of numeric subject id in data}
@@ -19,45 +20,57 @@ PC.GLM(id, stime, status, measurement.time, markers, data, prediction.time)
 
 \item{data}{data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.}
 
+\item{prediction.time}{numeric value for the prediction time of interest to fit the PC logistic model.}
+
 \item{use.BLUP}{a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.}
 
 \item{knots.measurement.time}{number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.}
 }
 \value{
-a 'PC_cox' model fit object, consisting of 'model.fit'
+a 'PC_GLM' model fit object, with elements
+
+ #' @return
+
+An object of class "PC_GLM" which is a list containing:
+
+\item{model.fit }{ A 'glm' object . Please note that the estimates of standard error associated with the model coefficients DO NOT incorporate the variation due to marker smoothing using BLUPs. }
+\item{marker.blup.fit }{ A list of length equal to the number of markers. For each index where use.BLUP is TRUE, this list contains the 'nmle' object fit for the corresponding marker. }
+\item{meas.time.spline}{ If knots.measurement.time is set, the measurement time spline basis matrix output from function 'ns'.  }
+\item{call, variable.names, prediction.time, use.BLUP, knots.measurement.time}{Inputs from function call. }
 }
 \description{
-Fit a partly conditional (PC) Cox models. PC models are helpful predictive tools in (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods directly model the predictive probability conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
+Fit a partly conditional (PC) logistic model. PC models are helpful predictive tools for (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods model the risk of an adverse event conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
 }
 \examples{
 data(pc_data)
 
-pc.model.1 <-  PC.Cox(
+pc.glm.1 <-  PC.GLM(
  id = "sub.id",
  stime = "time",
  status = "status",
  measurement.time = "log.meas.time",
- markers = c("marker", "marker_2"),
+ markers = c("marker_1", "marker_2"),
+ prediction.time = 24,
  data = pc_data,
- use.BLUP = c(FALSE, FALSE),
- knots.measurement.time = NA)
+ knots.measurement.time = NA) #no spline used
 
-pc.model.1
+pc.glm.1
 
-pc.model.1$model.fit #direct access to the coxph model object
+pc.glm.1$model.fit #direct access to the coxph model object
 
 #fit a model using natural cubic splines to model measurement time
 # and BLUPs to smooth marker measurements.
-pc.model.2 <-  PC.Cox(
+pc.glm.2 <-  PC.GLM(
  id = "sub.id",
  stime = "time",
  status = "status",
  measurement.time = "meas.time",
- markers = c("marker", "marker_2"),
- data = pc_data,
+ markers = c("marker_1", "marker_2"),
  use.BLUP = c(TRUE, TRUE),
- knots.measurement.time = 3)
+ prediction.time = 24,
+ data = pc_data,
+ knots.measurement.time = 3) #spline with three knots
 
-pc.model.2
+pc.glm.2
 
 }

@@ -1,6 +1,6 @@
 #' Fit a partly conditional Cox model
 #'
-#' Fit a partly conditional (PC) Cox models. PC models are helpful predictive tools in (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods directly model the predictive probability conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
+#' Fit a partly conditional (PC) Cox model. PC models are helpful predictive tools for (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods model the risk of an adverse event conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
 #'
 #' @param id name of numeric subject id in data
 #' @param stime name of survival time, may be repeated across subj. id.
@@ -12,8 +12,15 @@
 #' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
 #'
 #'
-#' @return a 'PC_cox' model fit object, consisting of 'model.fit'
+#' @return
 #'
+#' An object of class "PC_cox" which is a list containing:
+#'
+#' \item{model.fit }{ A 'glm' object . Please note that the estimates of standard error associated with the model coefficients DO NOT incorporate the variation due to marker smoothing using BLUPs. }
+#' \item{marker.blup.fit }{ A list of length equal to the number of markers. For each index where use.BLUP is TRUE, this list contains the 'nmle' object fit for the corresponding marker. }
+#' \item{meas.time.spline}{ If knots.measurement.time is set, the measurement time spline basis matrix output from function 'ns'.  }
+#' \item{call, variable.names, prediction.time, use.BLUP, knots.measurement.time}{Inputs from function call. }
+#'#'
 #' @examples
 #'data(pc_data)
 #'
