@@ -1,7 +1,7 @@
 Package: partlyconditional
 Type: Package
 Title: Partly Conditional Logistic and Cox models
-Version: 0.1
+Version: 0.2
 Date: 2017-10-17
 Author:  Marlena Maziarz, Yingye Zheng, Marshall Brown
 Maintainer: Marshall Brown <mdbrown@fredhutch.org>

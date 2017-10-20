@@ -20,7 +20,7 @@ A data.frame consisting of one row for each individual (grouped by id), with pre
 Estimate predicted absolute n-year risk from a PC.Cox model object.
 }
 \note{
-Marker measurements repeated over time are only needed, otherwise, just providing the most recent marker measurements is adquate.
+Marker measurements repeated over time are only needed for PC models fit using smoothed BLUP marker values, otherwise, just providing the most recent marker measurements is adequate.
 }
 \examples{
 data(pc_data)

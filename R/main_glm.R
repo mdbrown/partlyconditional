@@ -111,7 +111,7 @@ PC.GLM <- function( id,
   )
   names(my.data) <- c(id, stime, status, measurement.time, "t.star")
 
-  X.fit <- data[, markers]
+  X.fit <- data[, markers, drop = FALSE]
 
   ### blups
   mle.fit = list()
@@ -125,6 +125,9 @@ PC.GLM <- function( id,
       cat("...Calculating Best Linear Unbiased Predictors (BLUP's) for marker: ", markers[[xxind]]) ; cat("\n")
       #calculate blup for each marker
 
+      if(!is.numeric(X.fit[[xxind]])){
+        stop("Marker must be numeric for BLUP calculation.")
+      }
 
       marker.name <- names(X.fit)[xxind]
       my.data[[marker.name]] <- X.fit[,xxind]
@@ -341,7 +344,7 @@ predict.PC_GLM <- function(object, newdata, ...){
                         t.star = newdata[[object$variable.names[2]]] - newdata[[object$variable.names[4]]])
 
   names(my.data) <- c(object$variable.names[1:4], "t.star")
-  my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)]])
+  my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)], drop = FALSE])
 
   #fit blups if needed
   if(any(object$use.BLUP)){
@@ -407,7 +410,9 @@ predict.PC_GLM <- function(object, newdata, ...){
 
   #return risk
   ##########
-    aa <- data.frame( r = predict(object$model.fit, newdata = d.test.s.last.obs, type = "response"))
+    aa <- data.frame( r = predict(object$model.fit,
+                                  newdata = d.test.s.last.obs,
+                                  type = "response"))
 
 
 
