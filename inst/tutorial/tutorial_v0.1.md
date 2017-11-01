@@ -170,7 +170,7 @@ We can access the objects in the model fit by using the `$` operator, since `PC.
 ### Fit a PC GLM model 
 
 
-We fit a `PC.GLM` model similarly, except that we need to also specify a future $\tau_0$ = `prediction.time` when we fit the model.  We fit a model using a spline with 2 knots for measurement time, and raw values for two markers. **
+We fit a `PC.GLM` model similarly, except that we need to also specify a future $\tau_0$ = `prediction.time` when we fit the model.  We fit a model using a spline with 2 knots for measurement time, and raw values for two markers.
 
 
 ```r
@@ -347,13 +347,15 @@ pc.glm.2
 
 ### Make predictions
 
-We can now use the model fits above to `predict` the risk at fixed prediction times conditional on marker history.  The first step is to select new observations to calculate $\tau_0$ risk conditional on up to $s = 18$ months of marker data. 
+We can now use the model fits above to `predict` the risk at fixed prediction times conditional on marker history.  The first step is to select new observations to calculate $\tau_0$ risk conditional on up to $s = 18$ months of marker data. We demonstrate this below by selecting four subjects for whom we wish to make predictions. All marker data up to month 18 will be used for predictions.   
 
 
 ```r
-# choose to make predictions for subject id 3, 9 and 74
+# choose to make predictions for subject id 3, 9 and 74, 28
 #using marker measurements up to month 18
-newd <- dplyr::filter(pc_data, is.element(sub.id, c( 3, 9, 74, 28)), meas.time <= 18)
+newd <- dplyr::filter(pc_data, 
+                      is.element(sub.id, c( 3, 9, 74, 28)), 
+                      meas.time <= 18) 
 newd
 ```
 
@@ -376,7 +378,7 @@ newd
 ## 15     74  14.28849      1        12  1.27921103  1.1205354
 ```
 
-Next, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional on last marker time measured. 
+After we select the data to use for predictions, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional on last marker time measured for each individual.  
 
 
 
@@ -400,7 +402,7 @@ risk.cox.1
 ## 15     74  14.28849      1        12  1.2792110  1.1205354 0.2680695
 ```
 
-Note that `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
+See that `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
 
 
 Making predictions for a PC GLM model is similar, except that the prediction time $\tau_0$ has already been specified to fit the model. When we fit the `pc.glm.`, a prediction time of $\tau0=12$ was used, and so 12 month risk, conditional on the last observed measurement time for each individual, is estimated. 
