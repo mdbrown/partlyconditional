@@ -240,8 +240,8 @@ R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T &gt; s, H(s))
 \]</span></p>
 <p>where <span class="math inline">\(\lambda_0\)</span> is the unkown baseline hazard, <span class="math inline">\(B(s)\)</span> is a spline basis for the time of measurement, <span class="math inline">\(Z\)</span> is covariate information that is constant through time, and <span class="math inline">\(h(Y)\)</span> is a function of the marker values, such as last observed marker value or smoothed marker values. Absolute <span class="math inline">\(\tau\)</span> year estimates of risk conditional on surviving to measurement time <span class="math inline">\(s\)</span> are then calculated using the Breslow estimator.</p>
 </div>
-<div id="pc-logisitc-models" class="section level4">
-<h4>PC Logisitc models</h4>
+<div id="pc-logistic-models" class="section level4">
+<h4>PC Logistic models</h4>
 <p>Another flexible approach is to fit a PC glm model using <code>PC.GLM</code>. For this approach, a <em>marginal</em> generalized linear model is specified for the binary outcome defined by survival time <span class="math inline">\(T\)</span> and prediction time <span class="math inline">\(\tau_0\)</span>.</p>
 <p><span class="math display">\[
 P(T &lt; \tau_0 | s, H(s))  = g( \alpha B(s) + \beta Z + \gamma h(Y)) )
