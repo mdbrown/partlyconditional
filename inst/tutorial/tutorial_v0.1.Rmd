@@ -213,7 +213,7 @@ Note that `pc_data` is in 'long' format, with one row per measurement time. Each
 
 ### Fit a partly conditional Cox model 
 
-The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on patient id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using transformed  `log.meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
+The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on patient id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using raw  `meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
 
 ```{r}
 
@@ -224,7 +224,7 @@ pc.cox.1 <-  PC.Cox(
         measurement.time = "meas.time",  ##survival and measurement times must be on the same scale!!!
         markers = c("marker_1", "marker_2"),
         data = pc_data,
-        use.BLUP = c(FALSE, FALSE), #no modeling of markers through time
+        use.BLUP = c(FALSE, FALSE), #no smoothing of markers through time
         knots.measurement.time = NA) #no spline used for measurement time 
 
 pc.cox.1
@@ -269,7 +269,7 @@ lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)
 ```
 and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. 
 
-For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of a log transformation as shown above. 
+For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of its raw value as shown above. 
 
 
 ```{r}

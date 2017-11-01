@@ -104,22 +104,20 @@ head(pc_data)
 ```
 
 ```
-##    sub.id       time status meas.time log.meas.time   marker_1   marker_2
-## 1       1   9.661293      1         0      0.000000  1.5966568  0.7168800
-## 2       1   9.661293      1         6      1.945910  2.8376620  0.7314807
-## 11      2   4.571974      1         0      0.000000  0.6415240  0.9021957
-## 21      3 103.617181      1         0      0.000000 -0.5003165  1.5359251
-## 22      3 103.617181      1         6      1.945910  1.2697985 -1.2054431
-## 23      3 103.617181      1        12      2.564949  0.6484258 -1.9537152
+##    sub.id       time status meas.time   marker_1   marker_2
+## 1       1   9.661293      1         0  1.5966568  0.7168800
+## 2       1   9.661293      1         6  2.8376620  0.7314807
+## 11      2   4.571974      1         0  0.6415240  0.9021957
+## 21      3 103.617181      1         0 -0.5003165  1.5359251
+## 22      3 103.617181      1         6  1.2697985 -1.2054431
+## 23      3 103.617181      1        12  0.6484258 -1.9537152
 ```
 
-Note that `pc_data` is in 'long' format, with one row per measurement time. Each individual has a unique numeric subject id (`sub.id`) where event time (`time`) and event status (`status`) are repeated across marker measurement times (`meas.time`) given in months. `log.meas.time` is the transformation $log(s + 1)$ applied to the measurement time used for modeling. 
-
-
+Note that `pc_data` is in 'long' format, with one row per measurement time. Each individual has a unique numeric subject id (`sub.id`) where event time (`time`) and event status (`status`) are repeated across marker measurement times (`meas.time`) given in months. 
 
 ### Fit a partly conditional Cox model 
 
-The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on patient id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using transformed  `log.meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
+The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on patient id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using raw  `meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
 
 
 ```r
@@ -130,7 +128,7 @@ pc.cox.1 <-  PC.Cox(
         measurement.time = "meas.time",  ##survival and measurement times must be on the same scale!!!
         markers = c("marker_1", "marker_2"),
         data = pc_data,
-        use.BLUP = c(FALSE, FALSE), #no modeling of markers through time
+        use.BLUP = c(FALSE, FALSE), #no smoothing of markers through time
         knots.measurement.time = NA) #no spline used for measurement time 
 
 pc.cox.1
@@ -233,7 +231,7 @@ lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)
 ```
 and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. 
 
-For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of a log transformation as shown above. 
+For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of its raw value as shown above. 
 
 
 
@@ -360,22 +358,22 @@ newd
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time    marker_1   marker_2
-## 1       3 103.61718      1         0      0.000000 -0.50031652  1.5359251
-## 2       3 103.61718      1         6      1.945910  1.26979848 -1.2054431
-## 3       3 103.61718      1        12      2.564949  0.64842576 -1.9537152
-## 4       3 103.61718      1        18      2.944439  0.94453730 -0.4299647
-## 5       9  20.66679      1         0      0.000000  1.02888372 -1.4907630
-## 6       9  20.66679      1         6      1.945910 -0.06781037 -1.1421105
-## 7       9  20.66679      1        12      2.564949  1.57139173  0.2092991
-## 8       9  20.66679      1        18      2.944439 -0.51085602  0.1621595
-## 9      28 149.51524      1         0      0.000000  1.33427278 -1.0329640
-## 10     28 149.51524      1         6      1.945910  0.34167621  0.5655845
-## 11     28 149.51524      1        12      2.564949  1.79141978  0.9835499
-## 12     28 149.51524      1        18      2.944439  2.30550330 -0.9082704
-## 13     74  14.28849      1         0      0.000000  2.49743739  0.1347417
-## 14     74  14.28849      1         6      1.945910  2.42248176  0.6299841
-## 15     74  14.28849      1        12      2.564949  1.27921103  1.1205354
+##    sub.id      time status meas.time    marker_1   marker_2
+## 1       3 103.61718      1         0 -0.50031652  1.5359251
+## 2       3 103.61718      1         6  1.26979848 -1.2054431
+## 3       3 103.61718      1        12  0.64842576 -1.9537152
+## 4       3 103.61718      1        18  0.94453730 -0.4299647
+## 5       9  20.66679      1         0  1.02888372 -1.4907630
+## 6       9  20.66679      1         6 -0.06781037 -1.1421105
+## 7       9  20.66679      1        12  1.57139173  0.2092991
+## 8       9  20.66679      1        18 -0.51085602  0.1621595
+## 9      28 149.51524      1         0  1.33427278 -1.0329640
+## 10     28 149.51524      1         6  0.34167621  0.5655845
+## 11     28 149.51524      1        12  1.79141978  0.9835499
+## 12     28 149.51524      1        18  2.30550330 -0.9082704
+## 13     74  14.28849      1         0  2.49743739  0.1347417
+## 14     74  14.28849      1         6  2.42248176  0.6299841
+## 15     74  14.28849      1        12  1.27921103  1.1205354
 ```
 
 Next, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional on last marker time measured. 
@@ -395,11 +393,11 @@ risk.cox.1
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2   risk_12
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647 0.3038191
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595 0.4573857
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704 0.1985935
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354 0.2680695
+##    sub.id      time status meas.time   marker_1   marker_2   risk_12
+## 4       3 103.61718      1        18  0.9445373 -0.4299647 0.3038191
+## 8       9  20.66679      1        18 -0.5108560  0.1621595 0.4573857
+## 12     28 149.51524      1        18  2.3055033 -0.9082704 0.1985935
+## 15     74  14.28849      1        12  1.2792110  1.1205354 0.2680695
 ```
 
 Note that `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
@@ -417,11 +415,11 @@ risk.glm.1
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2   risk_12
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647 0.2872447
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595 0.4912718
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704 0.1522802
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354 0.2956771
+##    sub.id      time status meas.time   marker_1   marker_2   risk_12
+## 4       3 103.61718      1        18  0.9445373 -0.4299647 0.2872447
+## 8       9  20.66679      1        18 -0.5108560  0.1621595 0.4912718
+## 12     28 149.51524      1        18  2.3055033 -0.9082704 0.1522802
+## 15     74  14.28849      1        12  1.2792110  1.1205354 0.2956771
 ```
 
 
@@ -438,16 +436,16 @@ myp.2
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2 marker_1_BLUP
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647     0.7520612
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595     0.7270313
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704     1.1716669
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354     1.4246068
-##    marker_2_BLUP meas.time.spline.basis1 meas.time.spline.basis2   risk_12   risk_24
-## 4   -0.013394099               0.5056936              -0.1951669 0.3222193 0.5501239
-## 8   -0.014095502               0.5056936              -0.1951669 0.3246940 0.5534909
-## 12  -0.007798273               0.5056936              -0.1951669 0.2828789 0.4948532
-## 15  -0.024926200               0.3908905              -0.1920981 0.2662675 0.4705279
+##    sub.id      time status meas.time   marker_1   marker_2 marker_1_BLUP marker_2_BLUP
+## 4       3 103.61718      1        18  0.9445373 -0.4299647     0.7520612  -0.013394099
+## 8       9  20.66679      1        18 -0.5108560  0.1621595     0.7270313  -0.014095502
+## 12     28 149.51524      1        18  2.3055033 -0.9082704     1.1716669  -0.007798273
+## 15     74  14.28849      1        12  1.2792110  1.1205354     1.4246068  -0.024926200
+##    meas.time.spline.basis1 meas.time.spline.basis2   risk_12   risk_24
+## 4                0.5056936              -0.1951669 0.3222193 0.5501239
+## 8                0.5056936              -0.1951669 0.3246940 0.5534909
+## 12               0.5056936              -0.1951669 0.2828789 0.4948532
+## 15               0.3908905              -0.1920981 0.2662675 0.4705279
 ```
 
 ```r
@@ -459,16 +457,16 @@ myp.2
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2 marker_1_BLUP
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647     0.7520612
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595     0.7270313
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704     1.1716669
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354     1.4246068
-##    marker_2_BLUP meas.time.spline.basis1 meas.time.spline.basis2   risk_12
-## 4   -0.013394099               0.5056936              -0.1951669 0.3629767
-## 8   -0.014095502               0.5056936              -0.1951669 0.3661453
-## 12  -0.007798273               0.5056936              -0.1951669 0.3116166
-## 15  -0.024926200               0.3908905              -0.1920981 0.2758719
+##    sub.id      time status meas.time   marker_1   marker_2 marker_1_BLUP marker_2_BLUP
+## 4       3 103.61718      1        18  0.9445373 -0.4299647     0.7520612  -0.013394099
+## 8       9  20.66679      1        18 -0.5108560  0.1621595     0.7270313  -0.014095502
+## 12     28 149.51524      1        18  2.3055033 -0.9082704     1.1716669  -0.007798273
+## 15     74  14.28849      1        12  1.2792110  1.1205354     1.4246068  -0.024926200
+##    meas.time.spline.basis1 meas.time.spline.basis2   risk_12
+## 4                0.5056936              -0.1951669 0.3629767
+## 8                0.5056936              -0.1951669 0.3661453
+## 12               0.5056936              -0.1951669 0.3116166
+## 15               0.3908905              -0.1920981 0.2758719
 ```
 
 
