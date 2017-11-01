@@ -76,7 +76,7 @@ library(devtools)
 devtools::install_github("mdbrown/partlyconditional")
 ```
 
-All package code is also available on Github [here](https://github.com/mdbrown/partlyconditional). 
+All package code is also available on Github [here](http://github.com/mdbrown/partlyconditional). 
 
 
 #### Tutorial 

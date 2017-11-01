@@ -247,7 +247,7 @@ R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T &gt; s, H(s))
 P(T &lt; \tau_0 | s, H(s))  = g( \alpha B(s) + \beta Z + \gamma h(Y)) )
 \]</span></p>
 <p>As before, <span class="math inline">\(B(s)\)</span> is a spline basis for the time of measurement, <span class="math inline">\(Z\)</span> is covariate information, and <span class="math inline">\(h(Y)\)</span> is a function of the marker values. In this package, we use the logistic link function for <span class="math inline">\(g\)</span>. Note that since the binary outcome is defined based on the prediction time <span class="math inline">\(\tau_0\)</span>, a new marginal model must be specified for each desired future prediction time.</p>
-<p>Methods describing model fitting procedures that account for censored individuals are described in the [manuscript]{#ref} cited below.</p>
+<p>Methods describing model fitting procedures that account for censored individuals are described in the <a href="#ref">manuscript</a> cited below.</p>
 </div>
 <div id="blup" class="section level4">
 <h4>Smoothing marker trajectories using BLUPs.</h4>
@@ -268,7 +268,7 @@ Y_{ij} = \beta_0 + \beta_1 M_{j} + u_{0i} + u_{1i}M_j + \varepsilon_{ij}
 <pre class="r"><code>library(devtools)
 ###install 
 devtools::install_github(&quot;mdbrown/partlyconditional&quot;)</code></pre>
-<p>All package code is also available on Github <a href="https://github.com/mdbrown/partlyconditional">here</a>.</p>
+<p>All package code is also available on Github <a href="http://github.com/mdbrown/partlyconditional">here</a>.</p>
 <pre class="r"><code>#load libraries
 library(partlyconditional)
 library(tidyverse)</code></pre>
