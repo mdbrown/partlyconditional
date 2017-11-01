@@ -1,5 +1,5 @@
-# R package `partlyconditional`
-October 4, 2017  
+# Tutorial for R package `partlyconditional`
+Nov 1, 2017  
 
 # Introduction 
 
@@ -127,7 +127,7 @@ pc.cox.1 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
-        measurement.time = "log.meas.time",
+        measurement.time = "meas.time",  ##survival and measurement times must be on the same scale!!!
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         use.BLUP = c(FALSE, FALSE), #no modeling of markers through time
@@ -138,15 +138,15 @@ pc.cox.1
 
 ```
 ## ### Call:
-## PC.Cox(id = "sub.id", stime = "time", status = "status", measurement.time = "log.meas.time", 
+## PC.Cox(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
 ##     markers = c("marker_1", "marker_2"), data = pc_data, use.BLUP = c(FALSE, 
 ##         FALSE), knots.measurement.time = NA)
 ## 
 ## ### Partly conditional Cox model:
-##                      coef exp(coef)   se(coef)  robust se         z     Pr(>|z|)
-## log.meas.time -0.24889213 0.7796641 0.03373166 0.03099099 -8.031113 9.992007e-16
-## marker_1      -0.37381000 0.6881076 0.04073710 0.05669419 -6.593444 4.297385e-11
-## marker_2      -0.04877612 0.9523943 0.04497338 0.04759028 -1.024918 3.054021e-01
+##                   coef exp(coef)    se(coef)  robust se          z     Pr(>|z|)
+## meas.time -0.004493005 0.9955171 0.003101067 0.00341495 -1.3156868 1.882792e-01
+## marker_1  -0.373143536 0.6885664 0.040885492 0.05302323 -7.0373598 1.959211e-12
+## marker_2  -0.032826111 0.9677068 0.045190049 0.04232306 -0.7756081 4.379804e-01
 ```
 
 ```r
@@ -157,12 +157,12 @@ pc.cox.1$model.fit #direct access to the coxph model object
 ## Call:
 ## coxph(formula = my.formula, data = my.data)
 ## 
-##                  coef exp(coef) se(coef) robust se     z       p
-## log.meas.time -0.2489    0.7797   0.0337    0.0310 -8.03 1.0e-15
-## marker_1      -0.3738    0.6881   0.0407    0.0567 -6.59 4.3e-11
-## marker_2      -0.0488    0.9524   0.0450    0.0476 -1.02    0.31
+##               coef exp(coef) se(coef) robust se     z     p
+## meas.time -0.00449   0.99552  0.00310   0.00341 -1.32  0.19
+## marker_1  -0.37314   0.68857  0.04089   0.05302 -7.04 2e-12
+## marker_2  -0.03283   0.96771  0.04519   0.04232 -0.78  0.44
 ## 
-## Likelihood ratio test=137  on 3 df, p=0
+## Likelihood ratio test=90  on 3 df, p=0
 ## n= 478, number of events= 436
 ```
 
@@ -182,9 +182,10 @@ pc.glm.1 <-  PC.GLM(
         status = "status",
         measurement.time = "meas.time",
         markers = c("marker_1", "marker_2"),
-        prediction.time = 12,  ## prediction time must be on the same scale as measurement.time!!! 
+        use.BLUP = c(FALSE, FALSE), 
+        prediction.time = 12,  ##survival, measurement, and prediction times must be on the same scale!!! 
         data = pc_data,
-        knots.measurement.time = 2) #no spline used 
+        knots.measurement.time = NA) #no spline used 
 
 pc.glm.1
 ```
@@ -193,16 +194,15 @@ pc.glm.1
 ## ### Call:
 ## PC.GLM(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
 ##     markers = c("marker_1", "marker_2"), data = pc_data, prediction.time = 12, 
-##     knots.measurement.time = 2)
+##     use.BLUP = c(FALSE, FALSE), knots.measurement.time = NA)
 ## 
 ## ### Partly conditional Logistic model
 ## ###  for prediction time: 12 
-##                            Estimate Std. Error    z value     Pr(>|z|)
-## (Intercept)               2.4030220  0.3735026  6.4337493 1.244941e-10
-## meas.time.spline.basis1 -16.7612161  5.6667257 -2.9578309 3.098121e-03
-## meas.time.spline.basis2  -9.3660890 13.0458315 -0.7179373 4.727959e-01
-## marker_1                 -0.2560848  0.1182855 -2.1649718 3.038985e-02
-## marker_2                  0.2392499  0.1268528  1.8860439 5.928904e-02
+##                 Estimate  Std. Error    z value     Pr(>|z|)
+## (Intercept) -0.225711827 0.163160302 -1.3833747 1.665500e-01
+## meas.time   -0.006133045 0.006644043 -0.9230892 3.559607e-01
+## marker_1    -0.551000557 0.090460530 -6.0910605 1.121652e-09
+## marker_2     0.121536241 0.099515206  1.2212831 2.219788e-01
 ```
 
 ```r
@@ -215,14 +215,12 @@ pc.glm.1$model.fit #direct access to the glm model object
 ##     weights = wgt.IPW)
 ## 
 ## Coefficients:
-##             (Intercept)  meas.time.spline.basis1  meas.time.spline.basis2                 marker_1  
-##                  2.4030                 -16.7612                  -9.3661                  -0.2561  
-##                marker_2  
-##                  0.2392  
+## (Intercept)    meas.time     marker_1     marker_2  
+##   -0.225712    -0.006133    -0.551001     0.121536  
 ## 
-## Degrees of Freedom: 473 Total (i.e. Null);  469 Residual
+## Degrees of Freedom: 473 Total (i.e. Null);  470 Residual
 ## Null Deviance:	    602 
-## Residual Deviance: 363 	AIC: 363.6
+## Residual Deviance: 555.1 	AIC: 549.3
 ```
 
 
@@ -248,7 +246,7 @@ pc.cox.2 <-  PC.Cox(
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
-        knots.measurement.time = 3) # model measurement time using splines 
+        knots.measurement.time = 2) # model measurement time using splines 
 ```
 
 ```
@@ -264,18 +262,17 @@ pc.cox.2
 ## ### Call:
 ## PC.Cox(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
 ##     markers = c("marker_1", "marker_2"), data = pc_data, use.BLUP = c(TRUE, 
-##         TRUE), knots.measurement.time = 3)
+##         TRUE), knots.measurement.time = 2)
 ## 
 ## ### BLUPs fit for marker(s):  marker_1  marker_2 
 ##    See x$marker.blup.fit for details on mixed effect model fits. 
 ## 
 ## ### Partly conditional Cox model:
-##                                coef exp(coef)   se(coef)  robust se          z     Pr(>|z|)
-## meas.time.spline.basis1 -0.22523209 0.7983309 0.23702493 0.19289842 -1.1676202 2.429600e-01
-## meas.time.spline.basis2 -0.07935234 0.9237144 0.26120392 0.18929434 -0.4192008 6.750694e-01
-## meas.time.spline.basis3 -0.21490642 0.8066169 0.19258407 0.20257471 -1.0608749 2.887468e-01
-## marker_1_BLUP           -0.37453287 0.6876104 0.04110525 0.05261546 -7.1183042 1.092682e-12
-## marker_2_BLUP           -0.03347195 0.9670820 0.04539559 0.04160602 -0.8044979 4.211095e-01
+##                                coef exp(coef)   se(coef)  robust se         z     Pr(>|z|)
+## meas.time.spline.basis1 -0.20212150 0.8169957 0.23426095 0.20371230 -0.992191 3.211044e-01
+## meas.time.spline.basis2 -0.23941353 0.7870893 0.19690425 0.20993313 -1.140428 2.541082e-01
+## marker_1_BLUP           -0.37309658 0.6885987 0.04088387 0.05309220 -7.027333 2.105205e-12
+## marker_2_BLUP           -0.03186082 0.9686414 0.04538564 0.04200737 -0.758458 4.481769e-01
 ```
 
 We can view the individual mixed effect model fits used to smooth markers by viewing `$marker.blup.fit` from the function output. 
@@ -318,12 +315,13 @@ pc.glm.2 <-  PC.GLM(
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         prediction.time = 12, 
-        use.BLUP = c(TRUE,  FALSE), 
+        use.BLUP = c(TRUE, TRUE), 
         knots.measurement.time = 2) # model measurement time using splines 
 ```
 
 ```
 ## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_1
+## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_2
 ```
 
 ```r
@@ -334,19 +332,19 @@ pc.glm.2
 ## ### Call:
 ## PC.GLM(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
 ##     markers = c("marker_1", "marker_2"), data = pc_data, prediction.time = 12, 
-##     use.BLUP = c(TRUE, FALSE), knots.measurement.time = 2)
+##     use.BLUP = c(TRUE, TRUE), knots.measurement.time = 2)
 ## 
-## ### BLUPs fit for marker(s):  marker_1 
+## ### BLUPs fit for marker(s):  marker_1  marker_2 
 ##    See x$marker.blup.fit for details on mixed effect model fits. 
 ## 
 ## ### Partly conditional Logistic model
 ## ###  for prediction time: 12 
-##                            Estimate Std. Error    z value     Pr(>|z|)
-## (Intercept)               2.4030220  0.3735026  6.4337493 1.244941e-10
-## meas.time.spline.basis1 -16.7612161  5.6667257 -2.9578309 3.098121e-03
-## meas.time.spline.basis2  -9.3660890 13.0458315 -0.7179373 4.727959e-01
-## marker_1_BLUP            -0.2560848  0.1182855 -2.1649718 3.038985e-02
-## marker_2                  0.2392499  0.1268528  1.8860439 5.928904e-02
+##                           Estimate Std. Error    z value     Pr(>|z|)
+## (Intercept)             -0.4182982 0.20403066 -2.0501734 4.034751e-02
+## meas.time.spline.basis1  0.2507704 0.51240322  0.4894005 6.245582e-01
+## meas.time.spline.basis2 -0.7404380 0.43545586 -1.7003745 8.906051e-02
+## marker_1_BLUP           -0.5501334 0.09027420 -6.0940267 1.101053e-09
+## marker_2_BLUP            0.1311918 0.09993695  1.3127455 1.892687e-01
 ```
 
 ### Make predictions
@@ -387,8 +385,8 @@ Next, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional o
 ```r
 risk.cox.1 <- predict(pc.cox.1, 
                  newdata  = newd, 
-                 prediction.time = log(12)) #prediction time 
-
+                 prediction.time = 12) 
+#prediction time on same scale as measurement time 
 
 
 #estimate risk conditional on last recorded measurement time
@@ -397,11 +395,11 @@ risk.cox.1
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2 risk_2.484906649788
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647         0.012481616
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595         0.020805046
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704         0.007700267
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354         0.011230227
+##    sub.id      time status meas.time log.meas.time   marker_1   marker_2   risk_12
+## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647 0.3038191
+## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595 0.4573857
+## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704 0.1985935
+## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354 0.2680695
 ```
 
 Note that `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
@@ -419,16 +417,11 @@ risk.glm.1
 ```
 
 ```
-##    sub.id      time status meas.time log.meas.time   marker_1   marker_2 meas.time.spline.basis1
-## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647              0.12399197
-## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595              0.12399197
-## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704              0.12399197
-## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354              0.08026232
-##    meas.time.spline.basis2   risk_12
-## 4              -0.06600219 0.6452438
-## 8              -0.06600219 0.7526074
-## 12             -0.06600219 0.5337587
-## 15             -0.04301912 0.8023664
+##    sub.id      time status meas.time log.meas.time   marker_1   marker_2   risk_12
+## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647 0.2872447
+## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595 0.4912718
+## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704 0.1522802
+## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354 0.2956771
 ```
 
 
@@ -450,16 +443,32 @@ myp.2
 ## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595     0.7270313
 ## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704     1.1716669
 ## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354     1.4246068
-##    marker_2_BLUP meas.time.spline.basis1 meas.time.spline.basis2 meas.time.spline.basis3   risk_12
-## 4   -0.013394099              0.17619006               0.5585725              -0.3180959 0.3242025
-## 8   -0.014095502              0.17619006               0.5585725              -0.3180959 0.3266984
-## 12  -0.007798273              0.17619006               0.5585725              -0.3180959 0.2845266
-## 15  -0.024926200             -0.04976115               0.5904901              -0.3601734 0.2758284
-##      risk_24
-## 4  0.5529303
-## 8  0.5563158
-## 12 0.4973370
-## 15 0.4847020
+##    marker_2_BLUP meas.time.spline.basis1 meas.time.spline.basis2   risk_12   risk_24
+## 4   -0.013394099               0.5056936              -0.1951669 0.3222193 0.5501239
+## 8   -0.014095502               0.5056936              -0.1951669 0.3246940 0.5534909
+## 12  -0.007798273               0.5056936              -0.1951669 0.2828789 0.4948532
+## 15  -0.024926200               0.3908905              -0.1920981 0.2662675 0.4705279
+```
+
+```r
+myp.2 <- predict(pc.glm.2 , 
+                 newdata  = newd)
+#also includes information on measurement time splines and 
+#marker blups 
+myp.2
+```
+
+```
+##    sub.id      time status meas.time log.meas.time   marker_1   marker_2 marker_1_BLUP
+## 4       3 103.61718      1        18      2.944439  0.9445373 -0.4299647     0.7520612
+## 8       9  20.66679      1        18      2.944439 -0.5108560  0.1621595     0.7270313
+## 12     28 149.51524      1        18      2.944439  2.3055033 -0.9082704     1.1716669
+## 15     74  14.28849      1        12      2.564949  1.2792110  1.1205354     1.4246068
+##    marker_2_BLUP meas.time.spline.basis1 meas.time.spline.basis2   risk_12
+## 4   -0.013394099               0.5056936              -0.1951669 0.3629767
+## 8   -0.014095502               0.5056936              -0.1951669 0.3661453
+## 12  -0.007798273               0.5056936              -0.1951669 0.3116166
+## 15  -0.024926200               0.3908905              -0.1920981 0.2758719
 ```
 
 

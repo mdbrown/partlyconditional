@@ -1,6 +1,6 @@
 ---
-title: "R package `partlyconditional`"
-date: "October 4, 2017"
+title: "Tutorial for R package `partlyconditional`"
+date: "Nov 1, 2017"
 output: 
   html_document: 
     keep_md: yes
@@ -223,7 +223,7 @@ pc.cox.1 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
-        measurement.time = "log.meas.time",
+        measurement.time = "meas.time",  ##survival and measurement times must be on the same scale!!!
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         use.BLUP = c(FALSE, FALSE), #no modeling of markers through time
@@ -251,9 +251,10 @@ pc.glm.1 <-  PC.GLM(
         status = "status",
         measurement.time = "meas.time",
         markers = c("marker_1", "marker_2"),
-        prediction.time = 12,  ## prediction time must be on the same scale as measurement.time!!! 
+        use.BLUP = c(FALSE, FALSE), 
+        prediction.time = 12,  ##survival, measurement, and prediction times must be on the same scale!!! 
         data = pc_data,
-        knots.measurement.time = 2) #no spline used 
+        knots.measurement.time = NA) #no spline used 
 
 pc.glm.1
 
@@ -283,7 +284,7 @@ pc.cox.2 <-  PC.Cox(
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
-        knots.measurement.time = 3) # model measurement time using splines 
+        knots.measurement.time = 2) # model measurement time using splines 
 
 pc.cox.2
 
@@ -308,7 +309,7 @@ pc.glm.2 <-  PC.GLM(
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         prediction.time = 12, 
-        use.BLUP = c(TRUE,  FALSE), 
+        use.BLUP = c(TRUE, TRUE), 
         knots.measurement.time = 2) # model measurement time using splines 
 
 pc.glm.2
@@ -332,8 +333,8 @@ Next, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional o
 ```{r}
 risk.cox.1 <- predict(pc.cox.1, 
                  newdata  = newd, 
-                 prediction.time = log(12)) #prediction time 
-
+                 prediction.time = 12) 
+#prediction time on same scale as measurement time 
 
 
 #estimate risk conditional on last recorded measurement time
@@ -361,6 +362,13 @@ Finally, if we make predictions from a model that includes BLUPs to smooth marke
 myp.2 <- predict(pc.cox.2 , 
                  newdata  = newd, 
                  prediction.time = c(12, 24))
+#also includes information on measurement time splines and 
+#marker blups 
+myp.2
+
+
+myp.2 <- predict(pc.glm.2 , 
+                 newdata  = newd)
 #also includes information on measurement time splines and 
 #marker blups 
 myp.2

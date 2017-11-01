@@ -421,7 +421,7 @@ PC.model.frame <- function(object, newdata, ...){
   #check for missing data and throw it out, print a warning
   if(nrow(newdata)!=sum(mycomplete)){
     warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
-    data <- data[mycomplete,]
+    newdata <- newdata[mycomplete,]
 
   }
   my.data <- data.frame(id = newdata[[object$variable.names[1]]],
@@ -431,7 +431,7 @@ PC.model.frame <- function(object, newdata, ...){
                         t.star = newdata[[object$variable.names[2]]] - newdata[[object$variable.names[4]]])
 
   names(my.data) <- c(object$variable.names[1:4], "t.star")
-  my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)]])
+  my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)], drop = FALSE])
 
   #fit blups if needed
   if(any(object$use.BLUP)){

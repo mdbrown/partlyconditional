@@ -182,7 +182,7 @@ PC.GLM <- function( id,
   #fit cox model using raw marker data
   if(is.numeric(knots.measurement.time)){
     ## spline for measurement time
-    meas.time.spline.basis <- ns(xi,
+    meas.time.spline.basis <- ns(si,
                                  df = knots.measurement.time)
     xx <- as.data.frame(meas.time.spline.basis)
     names(xx) = paste0("meas.time.spline.basis", 1:ncol(xx))
@@ -202,7 +202,7 @@ PC.GLM <- function( id,
   }else{
 
 
-    names(glm.data$working.dataset)[5] <- measurement.time
+    names(glm.data$working.dataset)[4] <- measurement.time
     fmla <- as.formula(paste0("yi ~", measurement.time, "+", paste(marker.names, collapse = " + ")))
     #fit model using blupss
     fit <- glm(fmla, weights = wgt.IPW, data = glm.data$working.dataset, family = "binomial")

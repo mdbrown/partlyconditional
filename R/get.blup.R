@@ -100,6 +100,7 @@ get.lme.blup.fitted.1.covariate <- function(data, lf, id, marker, measurement.ti
     n.subjects <- length(sub.ids)
 
     # outcome
+
     yi <- matrix(data[[marker]], ncol = 1)
     # fixed effects
     xi <- matrix(cbind(1, data[[measurement.time]]), ncol = 2, byrow = F)
