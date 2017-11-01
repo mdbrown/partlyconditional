@@ -48,7 +48,7 @@ $$
 
 As before, $B(s)$ is a spline basis for the time of measurement, $Z$ is covariate information, and $h(Y)$ is a function of the marker values. In this package, we use the logistic link function for $g$. Note that since the binary outcome is defined based on the prediction time $\tau_0$,  a new marginal model must be specified for each desired future prediction time.  
 
-Methods describing model fitting procedures that account for censored individuals are described in the [manuscript]{#ref} cited below. 
+Methods describing model fitting procedures that account for censored individuals are described in the [manuscript](#ref) cited below. 
 
 #### Smoothing marker trajectories using BLUPs. {#blup}
 
