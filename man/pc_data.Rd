@@ -4,23 +4,20 @@
 \name{pc_data}
 \alias{pc_data}
 \title{Simulated dataset for package 'partlyconditional'}
-\format{A data frame with 500 rows and 6 variables:
+\format{A data frame with 478 observations from 100 subject
 \itemize{
-  \item Age: Age in years.
-  \item Female: Indicator for female gender.
-  \item Smokes: Indicator for smoking status.
-  \item Marker1: simulated biomarker.
-  \item Marker2: simulated biomarker.
-  \item Cancer: Indicator for cancer.
+  \item sub.id: numeric subject id.
+  \item time: survival time in months, repeated across id
+  \item status: adverse outcome status
+  \item meas.time: measurement time in months
+  \item marker_1: simulated marker
+  \item marker_2: simulated marker
 }}
 \usage{
 data(pc_data)
 }
 \description{
-Data from a QTL experiment on gravitropism in
-Arabidopsis, with data on 162 recombinant inbred lines (Ler x
-Cvi). The outcome is the root tip angle (in degrees) at two-minute
-increments over eight hours.
+Simulated dataset for package 'partlyconditional'
 }
 \examples{
 data(pc_data)
