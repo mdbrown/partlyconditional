@@ -76,6 +76,7 @@ PC.GLM <- function( id,
                     data,
                     prediction.time,
                     use.BLUP = rep(FALSE, length(markers)),
+                    type.BLUP = rep("fitted", length(markers)),
                     knots.measurement.time = NULL){
 
   call <- match.call()
@@ -136,10 +137,10 @@ PC.GLM <- function( id,
                     random = as.formula(paste("~ 1 +",measurement.time, "|", id)),
                     data = my.data))
       mle.fit[[xxind]] <- m1
-      X.fit[[xxind]] <- get.lme.blup.fitted.1.covariate(my.data, m1,
+      X.fit[[xxind]] <- get.lme.blup.fitted(my.data, m1,
                                                         id = id,
                                                         marker = marker.name,
-                                                        measurement.time = measurement.time)
+                                                        measurement.time = measurement.time)[,1]
 
     }else{
       mle.fit[[xxind]] <- NA

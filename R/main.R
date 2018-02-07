@@ -66,6 +66,7 @@ PC.Cox <- function( id,
                     markers,
                     data,
                     use.BLUP = rep(FALSE, length(markers)),
+                    type.BLUP = rep("fitted", length(markers)),
                     knots.measurement.time = NULL){
 
   call <- match.call()
@@ -104,9 +105,14 @@ PC.Cox <- function( id,
 
     mle.fit = list()
 
-    names(X.fit)[use.BLUP] <- paste0(names(X.fit)[use.BLUP], "_BLUP")
+    names(X.fit)[use.BLUP] <- paste0(names(X.fit)[use.BLUP], c("_BLUP_fitted","BLUP_intercept", "_BLUP_slope") )
 
     for(xxind in 1:length(markers)){
+
+      # indicator for if we need to calculate a mixed
+      # effects model using the marker
+      # this is true for a marker if either use.BLUP is true
+      # or if
 
       #calculate blups if needed
     if(use.BLUP[xxind]){
@@ -123,11 +129,13 @@ PC.Cox <- function( id,
                     random = as.formula(paste("~ 1 +",measurement.time, "|", id)),
                     data = my.data))
       mle.fit[[xxind]] <- m1
-      X.fit[[xxind]] <- get.lme.blup.fitted.1.covariate(my.data, m1,
-                                                        id = id,
-                                                        marker = marker.name,
-                                                        measurement.time = measurement.time)
 
+      tmp <- get.lme.blup.fitted(my.data, m1,
+                                           id = id,
+                                           marker = marker.name,
+                                           measurement.time = measurement.time)
+
+      X.fit[[xxind]] <- tmp[,1]
     }else{
       mle.fit[[xxind]] <- NA
     }
@@ -301,11 +309,11 @@ predict.PC_cox <- function(object, newdata, prediction.time, ...){
         # get fitted values for the marker in the training set
         m1 <- object$marker.blup.fit[[i]]
 
-        newdata[[paste0(marker.name, "_BLUP")]] <- get.lme.blup.fitted.1.covariate(my.data,
+        newdata[[paste0(marker.name, "_BLUP")]] <- get.lme.blup.fitted(my.data,
                                                                                    m1,
                                                                                    id = object$variable.names[1],
                                                                                    marker = marker.name,
-                                                                                   measurement.time = object$variable.names[4])
+                                                                                   measurement.time = object$variable.names[4])[,1]
 
 
       }

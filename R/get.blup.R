@@ -150,11 +150,94 @@ get.lme.blup.fitted.1.covariate <- function(data, lf, id, marker, measurement.ti
     return(yi.hat)
 }
 
+# returns BLUP fitted values for all marker measurements.
+get.lme.blup.fitted <- function(data, lf, id, marker, measurement.time){
+
+  n.obs <- dim(data)[1]
+  #sub.ids.full <- data$sub.id.consec
+  sub.ids <- unique(sort(data[[id]]))
+  n.subjects <- length(sub.ids)
+
+  # outcome
+  yi <- matrix(data[[marker]], ncol = 1)
+  # fixed effects
+  xi <- matrix(cbind(1, data[,measurement.time]), ncol = 2, byrow = F)
+  # random effects
+  zi <- xi
+
+  # get the beta hat and variance estimates from the lme fit (lf)
+  beta.hat <- as.matrix(lf$coeff$fixed, ncol = 1)
+
+  # random effects variance (D below)
+  # between individual variance in intercepts and slopes
+  # VarCorr is in the nlme package, calculates the estimated variances and correlations
+  # between random effect terms in LME model
+  v <- VarCorr(lf)
+  v11 <- as.numeric(v[1,1])
+  v22 <- as.numeric(v[2,1])
+  v12 <- sqrt(v11 * v22) * as.numeric(v[2,3])
+  D <- matrix(c(v11, v12, v12, v22), nrow = 2, byrow = T)
+
+  lf.sigma.sq <- lf$sigma^2
+
+  yi.hat <- rep(NA, n.obs)
+  myslopes <- yi.hat
+  myint <- yi.hat
+
+  for(i in 1:n.subjects){
+
+    ix.curr <- data[[id]] == sub.ids[i]
+    n.curr <- sum(ix.curr)
+    yi.curr <- matrix(yi[ix.curr], ncol = 1)
+    xi.curr <- matrix(xi[ix.curr, ], ncol = 2, byrow = F)
+    zi.curr <- matrix(zi[ix.curr, ], ncol = 2, byrow = F)
+
+    yi.hat.curr <- rep(NA, n.curr)
+    myslopes.curr <- yi.hat.curr
+    myint.curr <- yi.hat.curr
+    # browser()
+
+    for(j in 1:n.curr){
+
+      yi.curr.s <- matrix(yi.curr[1:j], ncol = 1)
+      yi.cc <- complete.cases(yi.curr.s)
+
+      xi.curr.s <- matrix(xi.curr[1:j, ], ncol = 2)
+      zi.curr.s <- matrix(zi.curr[1:j, ], ncol = 2)
+
+      # within subject variability
+      # cov(ei) = sigma^2*Identity matrix (dim ni x ni)
+      R <- lf.sigma.sq * diag(sum(yi.cc))
+
+      # DZi'(Ri + ZiDZi')^(-1)(Yi - XiBhat)
+      # only use the known y's to get bi.hat.s
+
+      xi.curr.s.cc <- matrix(xi.curr.s[yi.cc,], ncol = 2, byrow=F)
+      yi.curr.s.cc <- matrix(yi.curr.s[yi.cc,], ncol = 1)
+      zi.curr.s.cc <- matrix(zi.curr.s[yi.cc,], ncol = 2, byrow =F)
+
+      bi.hat.s <- D%*%t(zi.curr.s.cc)%*%solve(R + zi.curr.s.cc%*%D%*%t(zi.curr.s.cc))%*%(yi.curr.s.cc - xi.curr.s.cc%*%beta.hat)
+
+      out <- xi.curr.s[j,]%*%beta.hat + zi.curr.s[j,]%*%bi.hat.s
+
+      myslopes.curr[j] <- c(0,1)%*%beta.hat + c(0,1)%*%bi.hat.s
+      myint.curr[j] <- c(1,0)%*%beta.hat + c(1,0)%*%bi.hat.s
+      yi.hat.curr[j] <- out
+
+    }
 
 
+    # fixed (xi%*%beta.hat) and random Y hats (xi%*%beta.hat + zi%*%bi.hat)
+    # just need the random fitted Y
+    yi.hat[ix.curr] <- yi.hat.curr
+    myslopes[ix.curr] <- myslopes.curr
+    myint[ix.curr] <- myint.curr
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# END OF GET THE BLUP FITTED MARKER VALUES
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    rm(ix.curr, n.curr, yi.curr, xi.curr, zi.curr, yi.hat.curr, R, bi.hat.s)
+  }
 
+  return(data.frame(blup.fitted = yi.hat,
+                    blup.slope = myslopes,
+                    blup.intercept = myint))
+}
 
