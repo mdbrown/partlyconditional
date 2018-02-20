@@ -9,6 +9,7 @@
 #' @param markers character vector consisting of marker names to include.
 #' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
 #' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
+#' @param type.BLUP a vector of length equal to use.BLUP, indicating which type of BLUP information from the mixed effects model to use in the PC model. Options are  'fitted' (default) which uses the fitted BLUP estimates, 'intercept' for the BLUP intercept, 'slope' for the  or 'intercept_slope', which adds the BLUP intercept and slope to the PC model. 'intercept_slope' adds two terms to the PC model for each marker with corresponding use.BLUP slot equal to TRUE.
 #' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
 #'
 #'
@@ -77,6 +78,11 @@ PC.Cox <- function( id,
   stopifnot(is.data.frame(data))
 
   stopifnot(length(use.BLUP)== length(markers))
+  stopifnot(length(type.BLUP) == length(markers))
+  if(!all(is.element(type.BLUP,
+                     c("fitted",  "intercept", "slope", "intercept_slope"))) ){
+    stop("The elements of the vector 'type.BLUP' must match 'fitted', 'intercept', 'slope', or 'intercept_slope'. See documentation for more details.")
+  }
   #checkc to see if all variables are present in data
   tmpnames <- c(id, stime, status, measurement.time, markers)
   if(!all(is.element(tmpnames, names(data)))) stop(paste("'", tmpnames[which(!is.element(tmpnames, names(data)))], "' cannot be found in data.frame provided", sep = ""))
@@ -91,6 +97,8 @@ PC.Cox <- function( id,
 
   }
 
+
+
   #combine/filter data
   my.data <- data.frame(data[[id]],
                         data[[stime]],
@@ -101,11 +109,8 @@ PC.Cox <- function( id,
   names(my.data) <- c(id, stime, status, measurement.time, "t.star")
 
     X.fit <- data[, markers, drop = FALSE]
-
-
+    marker.names <- NULL
     mle.fit = list()
-
-    names(X.fit)[use.BLUP] <- paste0(names(X.fit)[use.BLUP], c("_BLUP_fitted","BLUP_intercept", "_BLUP_slope") )
 
     for(xxind in 1:length(markers)){
 
@@ -122,6 +127,8 @@ PC.Cox <- function( id,
       if(!is.numeric(X.fit[[xxind]])){
         stop("Marker must be numeric for BLUP calculation.")
       }
+
+
       marker.name <- names(X.fit)[xxind]
       my.data[[marker.name]] <- X.fit[,xxind]
       # get fitted values for the marker in the training set
@@ -135,13 +142,32 @@ PC.Cox <- function( id,
                                            marker = marker.name,
                                            measurement.time = measurement.time)
 
-      X.fit[[xxind]] <- tmp[,1]
+
+      names(tmp) <- paste0( marker.name,
+                            c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
+      X.fit <- cbind(X.fit, tmp)
+
+      #choose which blup elements to include in model
+      #using type.BLUP
+      if(type.BLUP[xxind] == "fitted"){
+        tmp.ind <- c(1)
+      }else if(type.BLUP[xxind] == "intercept"){
+        tmp.ind <- c(2)
+      }else if(type.BLUP[xxind] == "slope"){
+        tmp.ind <- c(3)
+      }else if(type.BLUP[xxind] == "intercept_slope"){
+        tmp.ind <- c(2,3)
+      }
+
+      marker.names <- c(marker.names, names(tmp)[tmp.ind] )
+
     }else{
       mle.fit[[xxind]] <- NA
+      marker.names <-  c(marker.names, names(X.fit)[xxind])
     }
 
     }
-    marker.names <- names(X.fit)
+
     my.data <- cbind(my.data, X.fit)
 
 
@@ -177,6 +203,7 @@ PC.Cox <- function( id,
                call = call,
                variable.names = c(id, stime, status, measurement.time, markers),
                use.BLUP = use.BLUP,
+               type.BLUP = type.BLUP,
                knots.measurement.time = knots.measurement.time)
   class(out) <- "PC_cox"
 
@@ -308,12 +335,15 @@ predict.PC_cox <- function(object, newdata, prediction.time, ...){
         marker.name <- object$variable.names[i + 4]
         # get fitted values for the marker in the training set
         m1 <- object$marker.blup.fit[[i]]
+        tmp <-  get.lme.blup.fitted(my.data,
+                                    m1,
+                                    id = object$variable.names[1],
+                                    marker = marker.name,
+                                    measurement.time = object$variable.names[4])
+        names(tmp) <- paste0( marker.name,
+                              c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
+        newdata <- cbind(newdata, tmp)
 
-        newdata[[paste0(marker.name, "_BLUP")]] <- get.lme.blup.fitted(my.data,
-                                                                                   m1,
-                                                                                   id = object$variable.names[1],
-                                                                                   marker = marker.name,
-                                                                                   measurement.time = object$variable.names[4])[,1]
 
 
       }
@@ -451,12 +481,15 @@ PC.model.frame <- function(object, newdata, ...){
         # get fitted values for the marker in the training set
         m1 <- object$marker.blup.fit[[i]]
 
-        newdata[[paste0(marker.name, "_BLUP")]] <- get.lme.blup.fitted.1.covariate(my.data,
-                                                                                   m1,
-                                                                                   id = object$variable.names[1],
-                                                                                   marker = marker.name,
-                                                                                   measurement.time = object$variable.names[4])
+        tmp <- get.lme.blup.fitted(my.data,
+                                   m1,
+                                   id = object$variable.names[1],
+                                   marker = marker.name,
+                                   measurement.time = object$variable.names[4])
 
+        names(tmp) <- paste0( marker.name,
+                              c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
+        newdata <- cbind(newdata, tmp)
 
       }
     }

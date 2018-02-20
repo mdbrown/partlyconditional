@@ -1,6 +1,6 @@
 ---
 title: "Tutorial for R package `partlyconditional`"
-date: "Nov 1, 2017"
+date: "Feb 20, 2018"
 output: 
   html_document: 
     keep_md: yes
@@ -79,7 +79,7 @@ pc_data_3 <- pc_data %>% filter(sub.id == 28)
 pc_data_3_mf <- PC.model.frame(pc.cox.2, pc_data_3)
 
 a <- pc_data_3_mf %>% 
-  gather(marker, value, marker_1, marker_2, marker_1_BLUP, marker_2_BLUP) %>%
+  gather(marker, value, marker_1, marker_2, marker_1_BLUP_fitted, marker_2_BLUP_fitted) %>%
   transform(BLUP = grepl( "BLUP", marker),
             marker_new = sub( "_", " ", substr(marker, 1, 8))
             ) %>% 
@@ -170,7 +170,7 @@ $$
 
 for measurement $j$ recorded from subject $i$ at measurement time $M_j$. The measurement error, $\varepsilon_{ij}$, is assumed to have a normal distribution. As shown above, we model marker trajectories using fixed intercept and linear effect of measurement time ($\beta_0$ and $\beta_1$) along with random intercepts and slopes that vary across individuals ($u_{0i}$ and $u_{1_i}$). 
 
-To obtain smoothed marker values to use for a new prediction, we then estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ by pairing the mixed effect models with raw marker values recorded up to some time $s$. 
+To obtain smoothed marker values to use for a new prediction, we then estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ by pairing the mixed effect models with raw marker values recorded up to some time $s$. The package functions provide the option to instead use the BLUP estimates for the marker slope, intercept or both the intercept and slope as predictors in the PC model. 
 
 Please see [references](#ref) below for further details. 
 
@@ -267,7 +267,7 @@ Instead of using raw marker values as predictors, which may have been measured w
 ```r
 lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)
 ```
-and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. 
+and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. We also set the argument `type.BLUP` to specify what type of BLUP we would like to use. The default 'fitted' returns the fitted BLUP values from the above model. Other options include, 'intercept', 'slope' and 'intercept_slope' to use the BLUP intercept, slope or both as predictors in the PC model. When 'intercept_slope' is used, as shown below for `marker_1`, two predictors are added to the final model. 
 
 For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of its raw value as shown above. 
 
@@ -282,11 +282,8 @@ pc.cox.2 <-  PC.Cox(
         markers = c("marker_1", "marker_2"),
         data = pc_data,
         use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
-        type.BLUP = c("fitted", "intercept_slope"),
+        type.BLUP = c("intercept_slope", "fitted"),
         knots.measurement.time = 2) # model measurement time using splines 
-
-
-
 ```
 
 We can view the individual mixed effect model fits used to smooth markers by viewing `$marker.blup.fit` from the function output. 
@@ -309,6 +306,7 @@ pc.glm.2 <-  PC.GLM(
         data = pc_data,
         prediction.time = 12, 
         use.BLUP = c(TRUE, TRUE), 
+        type.BLUP = c("intercept_slope", "fitted"), 
         knots.measurement.time = 2) # model measurement time using splines 
 
 pc.glm.2
@@ -332,7 +330,7 @@ After we select the data to use for predictions, we use `predict` to estimate $\
 
 
 ```{r}
-risk.cox.1 <- predict(pc.cox.2, 
+risk.cox.1 <- predict(pc.cox.1, 
                  newdata  = newd, 
                  prediction.time = 12) 
 #prediction time on same scale as measurement time 
@@ -350,7 +348,7 @@ Making predictions for a PC GLM model is similar, except that the prediction tim
 
 ```{r}
 #prediction time is already specified to fit model 
-risk.glm.1 <- predict(pc.glm.1 , 
+risk.glm.1 <- predict(pc.glm.2, 
                  newdata  = newd)
 
 risk.glm.1
@@ -390,6 +388,20 @@ data("pc_data")
 #extract patient 28 marker data 
 pc_data_3 <- pc_data %>% filter(sub.id == 28)
 
+
+pc.cox.3 <-  PC.Cox(
+        id = "sub.id",
+        stime = "time",
+        status = "status",
+        measurement.time = "meas.time",
+        markers = c("marker_1", "marker_2"),
+        data = pc_data,
+        use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
+        type.BLUP = c("fitted", "fitted"),
+        knots.measurement.time = 2) # model measurement time using splines 
+
+
+
 #use PC.model.frame to extract blup values 
 pc_data_3_mf <- PC.model.frame(pc.cox.2, pc_data_3)
 
@@ -397,7 +409,7 @@ pc_data_3_mf <- PC.model.frame(pc.cox.2, pc_data_3)
 plot_marker  <- pc_data_3_mf %>% 
                   gather(marker, value, 
                          marker_1, marker_2, 
-                         marker_1_BLUP, marker_2_BLUP) %>%
+                         marker_1_BLUP_fitted, marker_2_BLUP_fitted) %>%
                   transform(BLUP = grepl( "BLUP", marker),
                             marker_new = sub( "_", " ", substr(marker, 1, 8))
                   ) %>% 

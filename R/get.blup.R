@@ -237,7 +237,7 @@ get.lme.blup.fitted <- function(data, lf, id, marker, measurement.time){
   }
 
   return(data.frame(blup.fitted = yi.hat,
-                    blup.slope = myslopes,
-                    blup.intercept = myint))
+                    blup.intercept = myint,
+                    blup.slope = myslopes))
 }
 
