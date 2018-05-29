@@ -33,7 +33,7 @@ pc.model.1 <-  PC.Cox(
  markers = c("marker", "marker_2"),
  data = pc_data,
  use.BLUP = c(FALSE, FALSE),
- knots.measurement.time = NA)
+ urement.time = NA)
 
 pc.model.1
 
@@ -58,7 +58,7 @@ pc.model.2 <-  PC.Cox(
  markers = c("marker", "marker_2"),
  data = pc_data,
  use.BLUP = c(TRUE, TRUE),
- knots.measurement.time = 3)
+ urement.time = 3)
 
 #BLUPs are used in this pc model so marker trajectory is needed for
 #BLUP estimation and risk prediction calculation

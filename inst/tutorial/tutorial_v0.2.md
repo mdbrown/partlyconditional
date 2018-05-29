@@ -6,9 +6,9 @@ Feb 20, 2018
 
 
 
-The `partlyconditional` R package provides model fitting procedures to fit partly conditional (PC) risk models. These models are often employed in medical contexts where long term follow-up information is available on a patient population along with repeated measures of patient health and other biological markers collected across time. Interest lies in predicting patients' risk of a future adverse outcome using longitudinal data collected up until the time of prediction. 
+The `partlyconditional` R package provides model fitting procedures to fit partly conditional (PC) risk models. These models are often employed in medical contexts where long term follow-up information is available on a patient population along with repeated measures of patient health and other biological markers collected across time. Interest lies in predicting patients' risk of a future adverse outcome using data collected up until the time of prediction. 
 
-In the figure below, the black dotted lines in the left two panels display hypothetical marker values for a single subject collected across 54 months of patient history.  The right panel shows risk estimated using a PC model for the 'next' 12 months conditional on the observed marker trajectories. The left two panels also show 'smoothed' marker trajectories represented by blue lines. If markers are suspected to be measured with error, using smoothed marker values instead of raw marker values in a predictive model can improve model performance. Methods in this package allow for marker smoothing using mixed effect models to estimate the ['best unbiased linear predictor' (BLUP)](#blup) for each marker trajectory across time. 
+In the figure below, the black dotted lines in the left two panels display hypothetical marker values for a single subject collected across 54 months of patient history.  The dashed line on the right panel shows risk estimated using a PC model for the 'next' 12 months conditional on all of the patient's raw marker trajectory information. The left two panels also show 'smoothed' marker trajectories represented by blue lines. If markers are suspected to be measured with error, using smoothed marker values instead of raw marker values in a predictive model can improve model performance. Risk estimated using a predictive model with smoothed marker values is shown on the right with a solid line. Methods in this package allow for marker smoothing using mixed effect models to estimate the ['best unbiased linear predictor' (BLUP)](#blup) for each marker trajectory across time. 
 
 
 
@@ -18,15 +18,15 @@ In the figure below, the black dotted lines in the left two panels display hypot
 
 -------------------
 
-Specifically, partly conditional models predict the risk of an adverse event in the next $t_0$ time interval, given survival to time $s$, as a function of longitudinal marker history $H(s)$:  
+Specifically, *partly conditional models* predict the risk of an adverse event in the next $t_0$ time interval, given survival to time $s$, as a function of longitudinal marker history $H(s)$:  
 
 $$
 R(\tau_0 | s, H(s)) = P(T \le s + \tau_0 | T > s, H(s))
 $$
 
-Where $T$ is time until the event of interest. For the example shown above, the conditioning time is $s = 54$ months, and the prediction time $\tau_0$ ranges from 1-12 months to generate a risk curve across time. 
+Where $T$ is time until the event of interest. For the example shown above, the conditioning time is $s = 54$ months (the last time marker information was available), and the prediction time $\tau_0$ ranges from 1-12 months to generate a risk curve across time. 
 
-This package provides functions to fit two classes of partly conditional models--a 'Cox' type approach that models the conditional hazard of failure using a Cox proportional hazards model (`PC.Cox`) and a 'GLM' approach where a marginal generalized linear model is employed (`PC.GLM`).
+This package provides functions to fit two classes of partly conditional models--a 'Cox' approach that models the conditional hazard of failure using a Cox proportional hazards model (`PC.Cox`) and a 'GLM' approach where a marginal generalized linear model is employed (`PC.GLM`).
 
 #### PC Cox models 
 
@@ -36,7 +36,7 @@ $$
 \lambda(\tau | H(s))  = \lambda_0(\tau) exp(\alpha B(s) + \beta Z + \gamma h(Y)) 
 $$
 
-where $\lambda_0$ is the unkown baseline hazard, $B(s)$ is a spline basis for the time of measurement, $Z$ is covariate information that is constant through time, and $h(Y)$ is a function of the marker values, such as last observed marker value or smoothed marker values. Absolute $\tau$ year estimates of risk conditional on surviving to measurement time $s$ are then calculated using the Breslow estimator.  
+where $\lambda_0$ is the unkown baseline hazard, $B(s)$ represents a transformation of measurement time (such as a spline basis, or log transformation), $Z$ is covariate information that is constant through time, and $h(Y)$ is a function of the marker values, such as last observed marker value or smoothed marker values. Absolute $\tau$ year estimates of risk conditional on surviving to measurement time $s$ are then calculated using the Breslow estimator.  
 
 
 #### PC Logistic models 
@@ -48,25 +48,23 @@ $$
 P(T < \tau_0 | s, H(s))  = g( \alpha B(s) + \beta Z + \gamma h(Y)) )
 $$
 
-As before, $B(s)$ is a spline basis for the time of measurement, $Z$ is covariate information, and $h(Y)$ is a function of the marker values. In this package, we use the logistic link function for $g$. Note that since the binary outcome is defined based on the prediction time $\tau_0$,  a new marginal model must be specified for each desired future prediction time.  
+As before, $B(s)$ is a transformation of measurement time, $Z$ is covariate information, and $h(Y)$ is a function of the marker values. In this package, we use the logistic link function for $g$. Note that since the binary outcome is defined based on the prediction time $\tau_0$,  a new marginal model must be specified for each desired future prediction time.  
 
 Methods describing model fitting procedures that account for censored individuals are described in the [manuscript](#ref) cited below. 
 
 #### Smoothing marker trajectories using BLUPs. {#blup}
 
-Before fitting a PC model, `partlyconditional` functions include procedures to first smooth a marker $Y_i$'s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error because it borrows information about marker variation across individuals. For each marker $Y$, we model the biomarker process using a linear mixed effect model of the form: 
+Before fitting a PC model, `partlyconditional` include functions to first smooth a marker $Y_i$'s univariate trajectory through time by fitting mixed effect models. This is helpful for improving model performance when markers are measured with error because it borrows information about marker variation across individuals. For example, we may wish to model a marker $Y$ process using a simple linear mixed effect model of the form: 
 
 $$
 Y_{ij} = \beta_0 + \beta_1 M_{j} + u_{0i} + u_{1i}M_j + \varepsilon_{ij}
 $$
 
-for measurement $j$ recorded from subject $i$ at measurement time $M_j$. The measurement error, $\varepsilon_{ij}$, is assumed to have a normal distribution. As shown above, we model marker trajectories using fixed intercept and linear effect of measurement time ($\beta_0$ and $\beta_1$) along with random intercepts and slopes that vary across individuals ($u_{0i}$ and $u_{1_i}$). 
+for measurement $j$ recorded from subject $i$ at measurement time $M_j$. The measurement error, $\varepsilon_{ij}$, is assumed to have a normal distribution. As shown above, we model marker trajectories using fixed intercept and linear effect of measurement time ($\beta_0$ and $\beta_1$) along with random intercepts and slopes that vary across individuals ($u_{0i}$ and $u_{1_i}$). Functions included here allow the user to fit more complicated mixed effects model including more random/fixed covariates. 
 
-To obtain smoothed marker values to use for a new prediction, we then estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ by pairing the mixed effect models with raw marker values recorded up to some time $s$. The package functions provide the option to instead use the BLUP estimates for the marker slope, intercept or both the intercept and slope as predictors in the PC model. 
+To obtain smoothed marker values to use for a new prediction, we estimate the best linear unbiased predictors (BLUPs) $\hat{h}(Y)$ by pairing the mixed effect model with raw marker values recorded up to some time $s$. 
 
-Please see [references](#ref) below for further details. 
-
-
+Please see [references](#ref) below for further details.  
 
 
 #Tutorial 
@@ -117,19 +115,21 @@ Note that `pc_data` is in 'long' format, with one row per measurement time. Each
 
 ### Fit a partly conditional Cox model 
 
-The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on patient id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using raw  `meas.time` and two markers. Raw marker values are used in the model as predictors since `use.BLUP` is set to `FALSE` for both markers. 
+The function `PC.Cox` is used to fit a PC Cox model. To specify the model, we include information on subject id (`id`), survival time (`stime`), censoring status (`status`), measurement time (`measurement.time`), and markers.  Below we fit a model using log10 transformed `meas.time` and two markers `marker_1` and `marker_2`. 
 
 
 ```r
+#log transform measurement time for use in models. 
+pc_data$log.meas.time <- log10(pc_data$meas.time + 1)
+
+
 pc.cox.1 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
-        measurement.time = "meas.time",  ##survival and measurement times must be on the same scale!!!
-        markers = c("marker_1", "marker_2"),
-        data = pc_data,
-        use.BLUP = c(FALSE, FALSE), #no smoothing of markers through time
-        knots.measurement.time = NA) #no spline used for measurement time 
+        measurement.time = "meas.time",  ##survival time and measurement time must be on the same scale.
+        predictors =c("log.meas.time", "marker_1", "marker_2"),
+        data = pc_data) 
 
 pc.cox.1
 ```
@@ -137,14 +137,14 @@ pc.cox.1
 ```
 ## ### Call:
 ## PC.Cox(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
-##     markers = c("marker_1", "marker_2"), data = pc_data, use.BLUP = c(FALSE, 
-##         FALSE), knots.measurement.time = NA)
+##     predictors = c("log.meas.time", "marker_1", "marker_2"), 
+##     data = pc_data)
 ## 
 ## ### Partly conditional Cox model:
-##                   coef exp(coef)    se(coef)  robust se          z     Pr(>|z|)
-## meas.time -0.004493005 0.9955171 0.003101067 0.00341495 -1.3156868 1.882792e-01
-## marker_1  -0.373143536 0.6885664 0.040885492 0.05302323 -7.0373598 1.959211e-12
-## marker_2  -0.032826111 0.9677068 0.045190049 0.04232306 -0.7756081 4.379804e-01
+##                      coef exp(coef)   se(coef)  robust se          z     Pr(>|z|)
+## log.meas.time -0.08239789 0.9209055 0.08138932 0.07535606 -1.0934474 2.741974e-01
+## marker_1      -0.37654426 0.6862287 0.04079118 0.05390400 -6.9854599 2.839284e-12
+## marker_2      -0.03448283 0.9661049 0.04526180 0.04264707 -0.8085627 4.187667e-01
 ```
 
 ```r
@@ -153,14 +153,14 @@ pc.cox.1$model.fit #direct access to the coxph model object
 
 ```
 ## Call:
-## coxph(formula = my.formula, data = my.data)
+## coxph(formula = my.formula, data = data, x = TRUE)
 ## 
-##               coef exp(coef) se(coef) robust se     z     p
-## meas.time -0.00449   0.99552  0.00310   0.00341 -1.32  0.19
-## marker_1  -0.37314   0.68857  0.04089   0.05302 -7.04 2e-12
-## marker_2  -0.03283   0.96771  0.04519   0.04232 -0.78  0.44
+##                  coef exp(coef) se(coef) robust se     z       p
+## log.meas.time -0.0824    0.9209   0.0814    0.0754 -1.09    0.27
+## marker_1      -0.3765    0.6862   0.0408    0.0539 -6.99 2.8e-12
+## marker_2      -0.0345    0.9661   0.0453    0.0426 -0.81    0.42
 ## 
-## Likelihood ratio test=90  on 3 df, p=0
+## Likelihood ratio test=88.9  on 3 df, p=0
 ## n= 478, number of events= 436
 ```
 
@@ -170,7 +170,7 @@ We can access the objects in the model fit by using the `$` operator, since `PC.
 ### Fit a PC GLM model 
 
 
-We fit a `PC.GLM` model similarly, except that we need to also specify a future $\tau_0$ = `prediction.time` when we fit the model.  We fit a model using a spline with 2 knots for measurement time, and raw values for two markers.
+We fit a `PC.GLM` model similarly, except that we need to also specify a future $\tau_0$ = `prediction.time` when we fit the model. Below we choose to fit a model that predicts the risk of the outcome 12 months in the future.  Again,  we fit a model using log transformed measurement time, and raw values for two markers.
 
 
 ```r
@@ -179,11 +179,9 @@ pc.glm.1 <-  PC.GLM(
         stime = "time",
         status = "status",
         measurement.time = "meas.time",
-        markers = c("marker_1", "marker_2"),
-        use.BLUP = c(FALSE, FALSE), 
-        prediction.time = 12,  ##survival, measurement, and prediction times must be on the same scale!!! 
-        data = pc_data,
-        knots.measurement.time = NA) #no spline used 
+        predictors = c("log.meas.time", "marker_1", "marker_2"),
+        prediction.time = 12,  ##survival, measurement, and prediction times must be on the same scale.
+        data = pc_data) 
 
 pc.glm.1
 ```
@@ -191,16 +189,16 @@ pc.glm.1
 ```
 ## ### Call:
 ## PC.GLM(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
-##     markers = c("marker_1", "marker_2"), data = pc_data, prediction.time = 12, 
-##     use.BLUP = c(FALSE, FALSE), knots.measurement.time = NA)
+##     predictors = c("log.meas.time", "marker_1", "marker_2"), 
+##     data = pc_data, prediction.time = 12)
 ## 
 ## ### Partly conditional Logistic model
 ## ###  for prediction time: 12 
-##                 Estimate  Std. Error    z value     Pr(>|z|)
-## (Intercept) -0.225711827 0.163160302 -1.3833747 1.665500e-01
-## meas.time   -0.006133045 0.006644043 -0.9230892 3.559607e-01
-## marker_1    -0.551000557 0.090460530 -6.0910605 1.121652e-09
-## marker_2     0.121536241 0.099515206  1.2212831 2.219788e-01
+##                  Estimate Std. Error     z value     Pr(>|z|)
+## (Intercept)   -0.33977174 0.21239486 -1.59971734 1.096613e-01
+## log.meas.time  0.01490348 0.17890975  0.08330168 9.336117e-01
+## marker_1      -0.56148261 0.09045882 -6.20705197 5.398775e-10
+## marker_2       0.11636490 0.09941481  1.17049870 2.418003e-01
 ```
 
 ```r
@@ -213,69 +211,72 @@ pc.glm.1$model.fit #direct access to the glm model object
 ##     weights = wgt.IPW)
 ## 
 ## Coefficients:
-## (Intercept)    meas.time     marker_1     marker_2  
-##   -0.225712    -0.006133    -0.551001     0.121536  
+##   (Intercept)  log.meas.time       marker_1       marker_2  
+##       -0.3398         0.0149        -0.5615         0.1164  
 ## 
 ## Degrees of Freedom: 473 Total (i.e. Null);  470 Residual
 ## Null Deviance:	    602 
-## Residual Deviance: 555.1 	AIC: 549.3
+## Residual Deviance: 555.9 	AIC: 550
 ```
 
 
 #### Calculate BLUPs  
 
-Instead of using raw marker values as predictors, which may have been measured with error, we can choose to first smooth marker measurements using mixed effect models fit for each marker. We specify that BLUPs should be calculated for each marker by setting `use.BLUP = c(TRUE, TRUE)`. For each marker with `use.BLUP` element equal to  `TRUE`, we model the marker as function of measurement time using: 
-
-```r
-lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)
-```
-and estimate *best linear unbiased predictors* BLUPs for each marker using this set of models. We also set the argument `type.BLUP` to specify what type of BLUP we would like to use. The default 'fitted' returns the fitted BLUP values from the above model. Other options include, 'intercept', 'slope' and 'intercept_slope' to use the BLUP intercept, slope or both as predictors in the PC model. When 'intercept_slope' is used, as shown below for `marker_1`, two predictors are added to the final model. 
-
-For this model fit, we also set `knots.measurement.time = 3` to model measurement time using natural cubic splines instead of its raw value as shown above. 
+Instead of using raw marker values as predictors, which may have been measured with error, we can choose to first smooth marker measurements using mixed effect models fit for each marker. The function `BLUP` is used to calculate fit mixed effects models (using the `lme` function from package `nlme`). Below, we model `marker_1` using a mixed effects model including both fixed and random intercepts and fixed and random effects for log measurement time. We then estimate *best linear unbiased predictors* (BLUPs) by using `predict` to estimate BLUPs at the measurement times specified within the `newdata` provided. 
 
 
 
 ```r
+myblup.marker1 <- BLUP(marker = "marker_1",  
+                       measurement.time = "meas.time", 
+                       fixed = c("log.meas.time"), 
+                      random = c("log.meas.time"), 
+                       id = "sub.id" ,      
+                       data = pc_data )
+
+#adding blup estimates to pc_data
+fitted.blup.values.m1 <- predict(myblup.marker1, newdata = pc_data)
+
+#fitted.blup.values.m1 includes the fitted blup value 
+pc_data$marker_1_blup <- fitted.blup.values.m1$fitted.blup
+
+
 pc.cox.2 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
         measurement.time = "meas.time",
-        markers = c("marker_1", "marker_2"),
-        data = pc_data,
-        use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
-        type.BLUP = c("intercept_slope", "fitted"),
-        knots.measurement.time = 2) # model measurement time using splines 
+        predictors = c("log.meas.time", "marker_1_blup", "marker_2"),
+        data = pc_data) 
 ```
 
-```
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_1
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_2
-```
+When `predict` is called for an object created by the function `BLUP`,  a data.frame is returned that is the same . This data.frame includes measurement time, the marker variables and also the fitted BLUP values from the above model. 
 
-We can view the individual mixed effect model fits used to smooth markers by viewing `$marker.blup.fit` from the function output. 
+
+
+We can view the individual mixed effect model fits used to smooth markers by viewing `$model` from the `BLUP` function output. 
 
 
 ```r
-#direct access to mixed effect model fits
-pc.cox.2$marker.blup.fit[[1]] #same for marker_2
+#direct access to mixed effect model 
+myblup.marker1$model 
 ```
 
 ```
 ## Linear mixed-effects model fit by REML
-##   Data: my.data 
-##   Log-restricted-likelihood: -768.747
-##   Fixed: as.formula(paste0(marker.name, "~ 1 +", measurement.time)) 
-## (Intercept)   meas.time 
-## 0.811834699 0.004304699 
+##   Data: data 
+##   Log-restricted-likelihood: -763.425
+##   Fixed: fixed.formula 
+##   (Intercept) log.meas.time 
+##     0.7850669     0.1118169 
 ## 
 ## Random effects:
-##  Formula: ~1 + meas.time | sub.id
+##  Formula: ~1 + log.meas.time | sub.id
 ##  Structure: General positive-definite, Log-Cholesky parametrization
-##             StdDev      Corr  
-## (Intercept) 0.631632428 (Intr)
-## meas.time   0.006125194 -0.792
-## Residual    1.103872605       
+##               StdDev    Corr  
+## (Intercept)   0.8638483 (Intr)
+## log.meas.time 0.5056755 -0.813
+## Residual      1.0707777       
 ## 
 ## Number of Observations: 478
 ## Number of Groups: 100
@@ -285,195 +286,153 @@ Fitting BLUPs for a PC GLM model is done in same way.
 
 
 ```r
+#the blup for marker 1 was previously calculated and added to 'pc_data'
 pc.glm.2 <-  PC.GLM(
         id = "sub.id",
         stime = "time",
         status = "status",
         measurement.time = "meas.time",
-        markers = c("marker_1", "marker_2"),
+        predictors = c("log.meas.time", "marker_1_blup", "marker_2"),
         data = pc_data,
-        prediction.time = 12, 
-        use.BLUP = c(TRUE, TRUE), 
-        type.BLUP = c("intercept_slope", "fitted"), 
-        knots.measurement.time = 2) # model measurement time using splines 
-```
+        prediction.time = 12) # model measurement time using splines 
 
-```
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_1
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_2
-```
-
-```r
 pc.glm.2
 ```
 
 ```
 ## ### Call:
 ## PC.GLM(id = "sub.id", stime = "time", status = "status", measurement.time = "meas.time", 
-##     markers = c("marker_1", "marker_2"), data = pc_data, prediction.time = 12, 
-##     use.BLUP = c(TRUE, TRUE), type.BLUP = c("intercept_slope", 
-##         "fitted"), knots.measurement.time = 2)
-## 
-## ### BLUPs fit for marker(s):  marker_1  marker_2 
-##    See x$marker.blup.fit for details on mixed effect model fits. 
+##     predictors = c("log.meas.time", "marker_1_blup", "marker_2"), 
+##     data = pc_data, prediction.time = 12)
 ## 
 ## ### Partly conditional Logistic model
 ## ###  for prediction time: 12 
-##                              Estimate Std. Error    z value     Pr(>|z|)
-## (Intercept)                15.5635087   4.663251  3.3374803 8.454173e-04
-## meas.time.spline.basis1    -0.6282535   3.763811 -0.1669195 8.674334e-01
-## meas.time.spline.basis2    -1.5492468   3.254102 -0.4760904 6.340099e-01
-## marker_1_BLUP_intercept   -12.4718852   3.202518 -3.8943996 9.844224e-05
-## marker_1_BLUP_slope     -1351.4587741 424.583950 -3.1830190 1.457481e-03
-## marker_2_BLUP_fitted        6.2041295  16.942759  0.3661818 7.142294e-01
+##                 Estimate Std. Error   z value     Pr(>|z|)
+## (Intercept)    1.0622034  0.3122592  3.401672 6.697505e-04
+## log.meas.time  0.5791219  0.2125995  2.724004 6.449563e-03
+## marker_1_blup -2.6002212  0.3366059 -7.724823 1.120092e-14
+## marker_2       0.1477155  0.1036580  1.425028 1.541492e-01
 ```
 
 ### Make predictions
 
-We can now use the model fits above to `predict` the risk at fixed prediction times conditional on marker history.  The first step is to select new observations to calculate $\tau_0$ risk conditional on up to $s = 18$ months of marker data. We demonstrate this below by selecting four subjects for whom we wish to make predictions. All marker data up to month 18 will be used for predictions.   
+We can now use the model fits above to `predict` the risk at fixed prediction times conditional on marker history.  The first step is to select new observations for which to calculate $\tau_0$-month risk conditional on up to $s = 24$ months of subject data. We demonstrate this below by selecting four subjects for whom we wish to make predictions. Below, we select marker data up to month 18 to be used for predictions.   
+
 
 
 ```r
 # choose to make predictions for subject id 3, 9 and 74, 28
-#using marker measurements up to month 18
+#using marker measurements up to month 24
 newd <- dplyr::filter(pc_data, 
-                      is.element(sub.id, c( 3, 9, 74, 28)), 
+                      is.element(sub.id, c( 3, 9, 13, 28)), 
                       meas.time <= 18) 
+
 newd
 ```
 
 ```
-##    sub.id      time status meas.time    marker_1   marker_2
-## 1       3 103.61718      1         0 -0.50031652  1.5359251
-## 2       3 103.61718      1         6  1.26979848 -1.2054431
-## 3       3 103.61718      1        12  0.64842576 -1.9537152
-## 4       3 103.61718      1        18  0.94453730 -0.4299647
-## 5       9  20.66679      1         0  1.02888372 -1.4907630
-## 6       9  20.66679      1         6 -0.06781037 -1.1421105
-## 7       9  20.66679      1        12  1.57139173  0.2092991
-## 8       9  20.66679      1        18 -0.51085602  0.1621595
-## 9      28 149.51524      1         0  1.33427278 -1.0329640
-## 10     28 149.51524      1         6  0.34167621  0.5655845
-## 11     28 149.51524      1        12  1.79141978  0.9835499
-## 12     28 149.51524      1        18  2.30550330 -0.9082704
-## 13     74  14.28849      1         0  2.49743739  0.1347417
-## 14     74  14.28849      1         6  2.42248176  0.6299841
-## 15     74  14.28849      1        12  1.27921103  1.1205354
+##    sub.id      time status meas.time    marker_1   marker_2 log.meas.time marker_1_blup
+## 1       3 103.61718      1         0 -0.50031652  1.5359251      0.000000     0.2783058
+## 2       3 103.61718      1         6  1.26979848 -1.2054431      0.845098     0.6896794
+## 3       3 103.61718      1        12  0.64842576 -1.9537152      1.113943     0.7599670
+## 4       3 103.61718      1        18  0.94453730 -0.4299647      1.278754     0.8293829
+## 5       9  20.66679      1         0  1.02888372 -1.4907630      0.000000     0.8811915
+## 6       9  20.66679      1         6 -0.06781037 -1.1421105      0.845098     0.7731314
+## 7       9  20.66679      1        12  1.57139173  0.2092991      1.113943     0.9040240
+## 8       9  20.66679      1        18 -0.51085602  0.1621595      1.278754     0.7479773
+## 9      13  53.10317      1         0  3.39818371 -1.8174005      0.000000     1.8152855
+## 10     13  53.10317      1         6  3.02961521  0.1723658      0.845098     1.7456724
+## 11     13  53.10317      1        12  2.16985706  0.1379422      1.113943     1.6993292
+## 12     13  53.10317      1        18 -0.62339816  0.8148837      1.278754     1.3537189
+## 13     28 149.51524      1         0  1.33427278 -1.0329640      0.000000     1.0015908
+## 14     28 149.51524      1         6  0.34167621  0.5655845      0.845098     0.9001575
+## 15     28 149.51524      1        12  1.79141978  0.9835499      1.113943     1.0268658
+## 16     28 149.51524      1        18  2.30550330 -0.9082704      1.278754     1.1876927
 ```
 
-After we select the data to use for predictions, we use `predict` to estimate $\tau_0$ = 12 and 24 month risk conditional on last marker time measured for each individual.  
+The `predict` function takes in a pc model object, newdata and a landmark prediction time to specify how far in the future predictions should be made. For a pc-glm model, this landmark time has been previously specified in the call to PC.GLM. 
+
+Calling `predict` on a pc-model object generates estimates of risk at a future time `prediction.time`  *conditional on observing the measurement time specified in each row*. Below we specify this time to be 12 and 24 months. 
 
 
 
 ```r
-risk.cox.1 <- predict(pc.cox.1, 
-                 newdata  = newd, 
-                 prediction.time = 12) 
-#prediction time on same scale as measurement time 
-
-
-#estimate risk conditional on last recorded measurement time
-#for each individual
-risk.cox.1 
+risk.cox <- predict(pc.cox.2, 
+                    newdata = newd, 
+                    prediction.time = c(12, 24))
+risk.cox
 ```
 
 ```
-##    sub.id      time status meas.time   marker_1   marker_2   risk_12
-## 4       3 103.61718      1        18  0.9445373 -0.4299647 0.3038191
-## 8       9  20.66679      1        18 -0.5108560  0.1621595 0.4573857
-## 12     28 149.51524      1        18  2.3055033 -0.9082704 0.1985935
-## 15     74  14.28849      1        12  1.2792110  1.1205354 0.2680695
+##    sub.id      time status meas.time    marker_1   marker_2 log.meas.time marker_1_blup     t.star
+## 1       3 103.61718      1         0 -0.50031652  1.5359251      0.000000     0.2783058 103.617181
+## 2       3 103.61718      1         6  1.26979848 -1.2054431      0.845098     0.6896794  97.617181
+## 3       3 103.61718      1        12  0.64842576 -1.9537152      1.113943     0.7599670  91.617181
+## 4       3 103.61718      1        18  0.94453730 -0.4299647      1.278754     0.8293829  85.617181
+## 5       9  20.66679      1         0  1.02888372 -1.4907630      0.000000     0.8811915  20.666786
+## 6       9  20.66679      1         6 -0.06781037 -1.1421105      0.845098     0.7731314  14.666786
+## 7       9  20.66679      1        12  1.57139173  0.2092991      1.113943     0.9040240   8.666786
+## 8       9  20.66679      1        18 -0.51085602  0.1621595      1.278754     0.7479773   2.666786
+## 9      13  53.10317      1         0  3.39818371 -1.8174005      0.000000     1.8152855  53.103169
+## 10     13  53.10317      1         6  3.02961521  0.1723658      0.845098     1.7456724  47.103169
+## 11     13  53.10317      1        12  2.16985706  0.1379422      1.113943     1.6993292  41.103169
+## 12     13  53.10317      1        18 -0.62339816  0.8148837      1.278754     1.3537189  35.103169
+## 13     28 149.51524      1         0  1.33427278 -1.0329640      0.000000     1.0015908 149.515236
+## 14     28 149.51524      1         6  0.34167621  0.5655845      0.845098     0.9001575 143.515236
+## 15     28 149.51524      1        12  1.79141978  0.9835499      1.113943     1.0268658 137.515236
+## 16     28 149.51524      1        18  2.30550330 -0.9082704      1.278754     1.1876927 131.515236
+##       risk_12   risk_24
+## 1  0.51394325 0.7830346
+## 2  0.42012457 0.6846931
+## 3  0.42132719 0.6860765
+## 4  0.38991987 0.6488919
+## 5  0.26081966 0.4727602
+## 6  0.37867163 0.6350393
+## 7  0.33374712 0.5768829
+## 8  0.42454870 0.6897665
+## 9  0.06621480 0.1350681
+## 10 0.09188486 0.1846562
+## 11 0.10776935 0.2145680
+## 12 0.18572189 0.3528378
+## 13 0.21786836 0.4057592
+## 14 0.30804686 0.5415668
+## 15 0.27795967 0.4983191
+## 16 0.24629207 0.4505714
 ```
 
-See that `predict` produces a data.frame consisting of marker values and measurement times for the most recent marker measurement observed for each individual. Risk of experiencing the event of interested within 12 and 24 months is estimated for each individual conditional on surviving to the most recent marker measurement recorded for that individual. This means that subject 3 has an estimated 12 month risk of ~9% conditional on surviving 18 months from baseline, whereas subject 74 has a 12 month risk of ~8% conditional on surviving 12 months from baseline. 
+We see in the function outputs a data.frame matching `newdata` with new added columns `risk_12`  and `risk_24`. These columns provide the risk of experiencing the event of interested within 12 and 24 months (resp.) for each individual conditional on surviving to the marker measurement recorded for that row. For example, subject 3 has an estimated 12 month risk of ~29.8% conditional on surviving 18 months from baseline, whereas subject 9 has a 12 month risk of ~24.2% conditional on surviving 12 months from baseline. 
 
 
-Making predictions for a PC GLM model is similar, except that the prediction time $\tau_0$ has already been specified to fit the model. When we fit the `pc.glm.`, a prediction time of $\tau0=12$ was used, and so 12 month risk, conditional on the last observed measurement time for each individual, is estimated. 
+Making predictions for a PC GLM model is similar, except that the prediction time $\tau_0$ has already been specified to fit the model. When we fit the `pc.glm.`, a prediction time of $\tau0=12$ was used, and so 12 month risk, conditional on the observed measurement time shown in each row for each individual, is estimated. 
 
 
 ```r
 #prediction time is already specified to fit model 
-risk.glm.1 <- predict(pc.glm.2, 
-                 newdata  = newd)
+risk.glm  <- predict(pc.glm.2, 
+                      newdata  = newd)
 
-risk.glm.1
+risk.glm
 ```
 
 ```
-##    sub.id      time status meas.time   marker_1   marker_2 marker_1_BLUP_fitted
-## 4       3 103.61718      1        18  0.9445373 -0.4299647            0.7520612
-## 8       9  20.66679      1        18 -0.5108560  0.1621595            0.7270313
-## 12     28 149.51524      1        18  2.3055033 -0.9082704            1.1716669
-## 15     74  14.28849      1        12  1.2792110  1.1205354            1.4246068
-##    marker_1_BLUP_intercept marker_1_BLUP_slope marker_2_BLUP_fitted marker_2_BLUP_intercept
-## 4                0.6510864        0.0056097095         -0.013394099             -0.08779209
-## 8                0.6273763        0.0055363870         -0.014095502             -0.08849354
-## 12               1.1339240        0.0020968270         -0.007798273             -0.08219629
-## 15               1.4292738       -0.0003889178         -0.024926200             -0.07452488
-##    marker_2_BLUP_slope meas.time.spline.basis1 meas.time.spline.basis2   risk_12
-## 4          0.004133222               0.5056936              -0.1951669 0.4411494
-## 8          0.004133224               0.5056936              -0.1951669 0.5384122
-## 12         0.004133223               0.5056936              -0.1951669 0.1860081
-## 15         0.004133223               0.3908905              -0.1920981 0.1371412
+##    sub.id      time status meas.time    marker_1   marker_2 log.meas.time marker_1_blup    risk_12
+## 1       3 103.61718      1         0 -0.50031652  1.5359251      0.000000     0.2783058 0.63770723
+## 2       3 103.61718      1         6  1.26979848 -1.2054431      0.845098     0.6896794 0.39657334
+## 3       3 103.61718      1        12  0.64842576 -1.9537152      1.113943     0.7599670 0.36415760
+## 4       3 103.61718      1        18  0.94453730 -0.4299647      1.278754     0.8293829 0.39715491
+## 5       9  20.66679      1         0  1.02888372 -1.4907630      0.000000     0.8811915 0.19010962
+## 6       9  20.66679      1         6 -0.06781037 -1.1421105      0.845098     0.7731314 0.34809989
+## 7       9  20.66679      1        12  1.57139173  0.2092991      1.113943     0.9040240 0.35150433
+## 8       9  20.66679      1        18 -0.51085602  0.1621595      1.278754     0.7479773 0.47048555
+## 9      13  53.10317      1         0  3.39818371 -1.8174005      0.000000     1.8152855 0.01933339
+## 10     13  53.10317      1         6  3.02961521  0.1723658      0.845098     1.7456724 0.04916984
+## 11     13  53.10317      1        12  2.16985706  0.1379422      1.113943     1.6993292 0.06350990
+## 12     13  53.10317      1        18 -0.62339816  0.8148837      1.278754     1.3537189 0.16842374
+## 13     28 149.51524      1         0  1.33427278 -1.0329640      0.000000     1.0015908 0.15515364
+## 14     28 149.51524      1         6  0.34167621  0.5655845      0.845098     0.9001575 0.33060613
+## 15     28 149.51524      1        12  1.79141978  0.9835499      1.113943     1.0268658 0.30629877
+## 16     28 149.51524      1        18  2.30550330 -0.9082704      1.278754     1.1876927 0.19471303
 ```
-
-
-Finally, if we make predictions from a model that includes BLUPs to smooth markers and/or splines to model measurement time, these transformations are included in the output. 
-
-
-```r
-myp.2 <- predict(pc.cox.2 , 
-                 newdata  = newd, 
-                 prediction.time = c(12, 24))
-#also includes information on measurement time splines and 
-#marker blups 
-myp.2
-```
-
-```
-##    sub.id      time status meas.time   marker_1   marker_2 marker_1_BLUP_fitted
-## 4       3 103.61718      1        18  0.9445373 -0.4299647            0.7520612
-## 8       9  20.66679      1        18 -0.5108560  0.1621595            0.7270313
-## 12     28 149.51524      1        18  2.3055033 -0.9082704            1.1716669
-## 15     74  14.28849      1        12  1.2792110  1.1205354            1.4246068
-##    marker_1_BLUP_intercept marker_1_BLUP_slope marker_2_BLUP_fitted marker_2_BLUP_intercept
-## 4                0.6510864        0.0056097095         -0.013394099             -0.08779209
-## 8                0.6273763        0.0055363870         -0.014095502             -0.08849354
-## 12               1.1339240        0.0020968270         -0.007798273             -0.08219629
-## 15               1.4292738       -0.0003889178         -0.024926200             -0.07452488
-##    marker_2_BLUP_slope meas.time.spline.basis1 meas.time.spline.basis2   risk_12   risk_24
-## 4          0.004133222               0.5056936              -0.1951669 0.4186120 0.6863085
-## 8          0.004133224               0.5056936              -0.1951669 0.4922456 0.7651555
-## 12         0.004133223               0.5056936              -0.1951669 0.2003337 0.3799173
-## 15         0.004133223               0.3908905              -0.1920981 0.1376071 0.2712846
-```
-
-```r
-myp.2 <- predict(pc.glm.2 , 
-                 newdata  = newd)
-#also includes information on measurement time splines and 
-#marker blups 
-myp.2
-```
-
-```
-##    sub.id      time status meas.time   marker_1   marker_2 marker_1_BLUP_fitted
-## 4       3 103.61718      1        18  0.9445373 -0.4299647            0.7520612
-## 8       9  20.66679      1        18 -0.5108560  0.1621595            0.7270313
-## 12     28 149.51524      1        18  2.3055033 -0.9082704            1.1716669
-## 15     74  14.28849      1        12  1.2792110  1.1205354            1.4246068
-##    marker_1_BLUP_intercept marker_1_BLUP_slope marker_2_BLUP_fitted marker_2_BLUP_intercept
-## 4                0.6510864        0.0056097095         -0.013394099             -0.08779209
-## 8                0.6273763        0.0055363870         -0.014095502             -0.08849354
-## 12               1.1339240        0.0020968270         -0.007798273             -0.08219629
-## 15               1.4292738       -0.0003889178         -0.024926200             -0.07452488
-##    marker_2_BLUP_slope meas.time.spline.basis1 meas.time.spline.basis2   risk_12
-## 4          0.004133222               0.5056936              -0.1951669 0.4411494
-## 8          0.004133224               0.5056936              -0.1951669 0.5384122
-## 12         0.004133223               0.5056936              -0.1951669 0.1860081
-## 15         0.004133223               0.3908905              -0.1920981 0.1371412
-```
-
 
 
 #### Plot risk trajectory 
@@ -487,39 +446,51 @@ library(partlyconditional)
 library(stringr)
 data("pc_data")
 
-#extract patient 28 marker data 
-pc_data_3 <- pc_data %>% filter(sub.id == 28)
+#extract subject 28 marker data 
+
+pc_data$log.meas.time <- log10(pc_data$meas.time + 1)
 
 
-pc.cox.3 <-  PC.Cox(
+#obtain blup for marker 1 
+blup.marker1 <- BLUP(marker = "marker_1",  
+                       measurement.time = "meas.time", 
+                       fixed = c("log.meas.time"), 
+                       random = c("log.meas.time"), 
+                       id = "sub.id" ,      
+                       data = pc_data )
+
+pc_data$marker_1_blup <- predict(blup.marker1, newdata = pc_data)$fitted
+
+#obtain blup for marker 2 
+blup.marker2 <- BLUP(marker = "marker_2",  
+                       measurement.time = "meas.time", 
+                       fixed = c("log.meas.time"), 
+                       random = c("log.meas.time"), 
+                       id = "sub.id" ,      
+                       data = pc_data )
+
+pc_data$marker_2_blup <- predict(blup.marker2, newdata = pc_data)$fitted
+
+
+
+pc.cox.2 <-  PC.Cox(
         id = "sub.id",
         stime = "time",
         status = "status",
         measurement.time = "meas.time",
-        markers = c("marker_1", "marker_2"),
-        data = pc_data,
-        use.BLUP = c(TRUE, TRUE), #smooth marker trajectories 
-        type.BLUP = c("fitted", "fitted"),
-        knots.measurement.time = 2) # model measurement time using splines 
-```
+        predictors  = c("log.meas.time", "marker_1", "marker_2"),
+        data = pc_data) # model measurement time using splines 
 
-```
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_1
-## ...Calculating Best Linear Unbiased Predictors (BLUP's) for marker:  marker_2
-```
 
-```r
-#use PC.model.frame to extract blup values 
-pc_data_3_mf <- PC.model.frame(pc.cox.2, pc_data_3)
 
-# 
-plot_marker  <- pc_data_3_mf %>% 
-                  gather(marker, value, 
-                         marker_1, marker_2, 
-                         marker_1_BLUP_fitted, marker_2_BLUP_fitted) %>%
-                  transform(BLUP = grepl( "BLUP", marker),
-                            marker_new = sub( "_", " ", substr(marker, 1, 8))
-                  ) %>% 
+
+pc_data_3 <- pc_data %>% filter(sub.id == 28)
+
+plot_marker <- pc_data_3 %>% 
+  gather(marker, value, marker_1, marker_2, marker_1_blup, marker_2_blup) %>%
+  transform(BLUP = grepl( "blup", marker),
+            marker_new = sub( "_", " ", substr(marker, 1, 8))
+            ) %>% 
   ggplot(aes(meas.time, value, 
              color = BLUP,
              linetype = BLUP, 
@@ -538,21 +509,34 @@ plot_marker  <- pc_data_3_mf %>%
   theme(text =element_text(size = 14), legend.position = 'none')  + 
   scale_x_continuous(breaks = c(0, 12, 24, 36, 48, 54))
 
+pc_data_3_pred <- predict(pc.cox.2,  
+                          filter(pc_data_3, meas.time == 54),
+                          prediction.time =  seq(0, 12, by = .1)) %>% 
+  gather( "time_risk", "risk", -c(1:10)) %>% 
+   select(time_risk, raw = risk)
 
-## estimate risk using predict
-pc_data_3_pred <- predict(pc.cox.2, pc_data_3, prediction.time = seq(0, 12, by = .1))
+pc_data_3_pred_w_blup <-  predict(pc.cox.3,  
+                          filter(pc_data_3, meas.time == 54),
+                          prediction.time =  seq(0, 12, by = .1)) %>% 
+  gather( "time_risk", "risk", -c(1:10)) %>% 
+   select(time_risk, blup = risk)
 
-plot_risk <- pc_data_3_pred %>% 
-               gather( "time_risk", "risk", -c(1:12)) %>% 
-               select(time_risk, risk) %>% 
-               transform(month = as.numeric(str_extract(time_risk, "\\d+\\.*\\d*"))) %>%
+
+plot_risk <- left_join(pc_data_3_pred,
+              pc_data_3_pred_w_blup,
+              by = "time_risk") %>%
+  gather(model, risk, raw, blup) %>%
+   #gather( "time_risk", "risk", -c(1:10)) %>% 
+  # select(time_risk, risk) %>% 
+   transform(month = as.numeric(str_extract(time_risk, "\\d+\\.*\\d*"))) %>%
   ggplot(aes(x = month, y = risk)) + 
-  geom_path(size = 1, color = "tomato")  +
-  ylim(0,.5) +   xlim(0,13) + 
-  theme_bw() + 
-  xlab("Months from time of prediction") +
-  ylab("Estimated Risk") + 
-  theme(text =element_text(size = 14), legend.position = 'none') 
+  geom_path(size = 1, color = "tomato", aes(linetype = model))  +
+  ylim(0,.5) +   
+    theme_bw() + 
+    xlab("Months from time of prediction") +
+    ylab("Estimated Risk") + 
+  theme(text =element_text(size = 14), legend.position = 'none')  + 
+  scale_x_continuous(breaks = c(0, 2, 4, 6, 8, 10, 12))
 ```
 
 # References {#ref}

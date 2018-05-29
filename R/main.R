@@ -10,7 +10,7 @@
 #' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
 #' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
 #' @param type.BLUP a vector of length equal to use.BLUP, indicating which type of BLUP information from the mixed effects model to use in the PC model. Options are  'fitted' (default) which uses the fitted BLUP estimates, 'intercept' for the BLUP intercept, 'slope' for the  or 'intercept_slope', which adds the BLUP intercept and slope to the PC model. 'intercept_slope' adds two terms to the PC model for each marker with corresponding use.BLUP slot equal to TRUE.
-#' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
+#' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, and measurement.time will be included as a linear predictor in the PC Cox model.
 #'
 #'
 #' @return
@@ -55,20 +55,15 @@
 #'
 #' @import dplyr
 #' @import survival
-#' @importFrom nlme lme
-#' @importFrom nlme VarCorr
-#' @importFrom splines ns
 #' @export
 
 PC.Cox <- function( id,
                     stime,
                     status,
                     measurement.time,
-                    markers,
+                    predictors,
                     data,
-                    use.BLUP = rep(FALSE, length(markers)),
-                    type.BLUP = rep("fitted", length(markers)),
-                    knots.measurement.time = NULL){
+                    additional.formula.pars = NULL){
 
   call <- match.call()
 
@@ -77,14 +72,9 @@ PC.Cox <- function( id,
   #check data frame
   stopifnot(is.data.frame(data))
 
-  stopifnot(length(use.BLUP)== length(markers))
-  stopifnot(length(type.BLUP) == length(markers))
-  if(!all(is.element(type.BLUP,
-                     c("fitted",  "intercept", "slope", "intercept_slope"))) ){
-    stop("The elements of the vector 'type.BLUP' must match 'fitted', 'intercept', 'slope', or 'intercept_slope'. See documentation for more details.")
-  }
-  #checkc to see if all variables are present in data
-  tmpnames <- c(id, stime, status, measurement.time, markers)
+
+   #checkc to see if all variables are present in data
+  tmpnames <- c(id, stime, status, measurement.time, predictors)
   if(!all(is.element(tmpnames, names(data)))) stop(paste("'", tmpnames[which(!is.element(tmpnames, names(data)))], "' cannot be found in data.frame provided", sep = ""))
 
   #only keep complete cases
@@ -94,117 +84,31 @@ PC.Cox <- function( id,
   if(nrow(data)!=sum(mycomplete)){
     warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
     data <- data[mycomplete,]
-
   }
 
-
+  #remove any observations with survival time less than meas.time
+  wonky.times <- data[[tmpnames[2]]] < data[[tmpnames[4]]]
+  if(any(wonky.times)) {
+    cat(paste0("... removing ",  sum(wonky.times) , " observations where ", tmpnames[2], " is greater than outcome variable ", tmpnames[4], ".\n"))
+  }
+  data <- data[!wonky.times,]
 
   #combine/filter data
-  my.data <- data.frame(data[[id]],
-                        data[[stime]],
-                        data[[status]],
-                        data[[measurement.time]],
-                        data[[stime]] - data[[measurement.time]]
-                        )
-  names(my.data) <- c(id, stime, status, measurement.time, "t.star")
-
-    X.fit <- data[, markers, drop = FALSE]
-    marker.names <- NULL
-    mle.fit = list()
-
-    for(xxind in 1:length(markers)){
-
-      # indicator for if we need to calculate a mixed
-      # effects model using the marker
-      # this is true for a marker if either use.BLUP is true
-      # or if
-
-      #calculate blups if needed
-    if(use.BLUP[xxind]){
-    cat("...Calculating Best Linear Unbiased Predictors (BLUP's) for marker: ", markers[[xxind]]) ; cat("\n")
-    #calculate blup for each marker
-
-      if(!is.numeric(X.fit[[xxind]])){
-        stop("Marker must be numeric for BLUP calculation.")
-      }
+  t.star <-  data[[stime]] - data[[measurement.time]]
 
 
-      marker.name <- names(X.fit)[xxind]
-      my.data[[marker.name]] <- X.fit[,xxind]
-      # get fitted values for the marker in the training set
-      m1 <- try(lme(as.formula(paste0(marker.name, "~ 1 +",  measurement.time)),
-                    random = as.formula(paste("~ 1 +",measurement.time, "|", id)),
-                    data = my.data))
-      mle.fit[[xxind]] <- m1
-
-      tmp <- get.lme.blup.fitted(my.data, m1,
-                                           id = id,
-                                           marker = marker.name,
-                                           measurement.time = measurement.time)
-
-
-      names(tmp) <- paste0( marker.name,
-                            c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
-      X.fit <- cbind(X.fit, tmp)
-
-      #choose which blup elements to include in model
-      #using type.BLUP
-      if(type.BLUP[xxind] == "fitted"){
-        tmp.ind <- c(1)
-      }else if(type.BLUP[xxind] == "intercept"){
-        tmp.ind <- c(2)
-      }else if(type.BLUP[xxind] == "slope"){
-        tmp.ind <- c(3)
-      }else if(type.BLUP[xxind] == "intercept_slope"){
-        tmp.ind <- c(2,3)
-      }
-
-      marker.names <- c(marker.names, names(tmp)[tmp.ind] )
-
-    }else{
-      mle.fit[[xxind]] <- NA
-      marker.names <-  c(marker.names, names(X.fit)[xxind])
-    }
-
-    }
-
-    my.data <- cbind(my.data, X.fit)
-
-
-  #fit cox model using raw marker data
-  if(is.numeric(knots.measurement.time)){
-    ## spline for measurement time
-    meas.time.spline.basis <- ns(my.data[[measurement.time]],
-                                 df = knots.measurement.time)
-    xx <- as.data.frame(meas.time.spline.basis)
-    names(xx) = paste0("meas.time.spline.basis", 1:ncol(xx))
-
-    my.data <- cbind(my.data, xx)
-
-    my.formula <- as.formula(paste0("Surv( t.star, ", status,") ~", paste(names(xx), collapse = " + "), "+",
-                                    paste(marker.names, collapse = " + "),
-                                    "+", "cluster(", id, ")"))
+  #sort by measurement time
+  my.formula <- as.formula(paste0("Surv( t.star, ", status,") ~",
+                                  paste(predictors, collapse = " + "),
+                                    "+", "cluster(", id, ")",
+                                    ifelse(is.null(additional.formula.pars), "", paste("+ ", additional.formula.pars)) ))
     #fit model using blups
-    fit <- coxph(my.formula, data = my.data, x = TRUE)
+    fit <- coxph(my.formula, data = data, x = TRUE)
 
-
-  }else{
-
-    my.formula <- as.formula(paste0("Surv( t.star, ", status,") ~", measurement.time, "+", paste(marker.names, collapse = " + ") ,
-                              "+", "cluster(", id, ")"))
-    #fit model using blups
-    fit <- coxph(my.formula, data = my.data)
-    meas.time.spline.basis <- NULL #nothing to put here
-  }
-
-  out <- list( model.fit = fit,
-               marker.blup.fit = mle.fit,
-               meas.time.spline = meas.time.spline.basis,
+    predictors.unique <- predictors[!is.element(predictors, c(id, stime, status, measurement.time))]
+     out <- list( model.fit = fit,
                call = call,
-               variable.names = c(id, stime, status, measurement.time, markers),
-               use.BLUP = use.BLUP,
-               type.BLUP = type.BLUP,
-               knots.measurement.time = knots.measurement.time)
+               variable.names = c(id, stime, status, measurement.time, predictors.unique))
   class(out) <- "PC_cox"
 
   out
@@ -221,18 +125,6 @@ print.PC_cox <- function(x, ...){
   cat("\n")
 
 
-  if(any(x$use.BLUP)){
-    cat("### BLUPs fit for marker(s): ")
-    for(i in 1:length(x$use.BLUP)){
-      if(x$use.BLUP[i]) {
-        cat("", x$variable.names[i+4],"")
-
-        #print(x$marker.blup.fit[[i]])
-
-      }
-    }
-    cat("\n   See x$marker.blup.fit for details on mixed effect model fits. \n\n")
-  }
   cat("### Partly conditional Cox model:\n")
 
   print(summary(x$model.fit)$coef)
@@ -262,7 +154,7 @@ print.PC_cox <- function(x, ...){
 #'  markers = c("marker", "marker_2"),
 #'  data = pc_data,
 #'  use.BLUP = c(FALSE, FALSE),
-#'  knots.measurement.time = NA)
+#'  urement.time = NA)
 #'
 #'pc.model.1
 #'
@@ -287,7 +179,7 @@ print.PC_cox <- function(x, ...){
 #'  markers = c("marker", "marker_2"),
 #'  data = pc_data,
 #'  use.BLUP = c(TRUE, TRUE),
-#'  knots.measurement.time = 3)
+#'  urement.time = 3)
 #'
 #'#BLUPs are used in this pc model so marker trajectory is needed for
 #'#BLUP estimation and risk prediction calculation
@@ -296,7 +188,7 @@ print.PC_cox <- function(x, ...){
 #'
 #' @export
 
-predict.PC_cox <- function(object, newdata, prediction.time, ...){
+predict.PC_cox <- function(object, newdata,  prediction.time, ...){
 
   stopifnot(is.numeric(prediction.time))
   prediction.time = sort(prediction.time)
@@ -313,90 +205,50 @@ predict.PC_cox <- function(object, newdata, prediction.time, ...){
 
   #check for missing data and throw it out, print a warning
   if(nrow(newdata)!=sum(mycomplete)){
-    warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
-    data <- data[mycomplete,]
+    warning(paste(nrow(newdata)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
+    newdata <- newdata[mycomplete,]
 
   }
-  my.data <- data.frame(id = newdata[[object$variable.names[1]]],
+
+  #remove any observations with survival time less than meas.time
+  wonky.times <-  newdata[[object$variable.names[2]]] < newdata[[object$variable.names[4]]]
+  if(any(wonky.times)) {
+    warning(paste0("... removing ",  sum(wonky.times) , " observations where ", object$variable.names[4], " is greater than outcome variable ", object$variable.names[2], ".\n"))
+  }
+
+  newdata <- newdata[!wonky.times,]
+
+
+
+   my.data <- data.frame(id = newdata[[object$variable.names[1]]],
                         stime = newdata[[object$variable.names[2]]],
                         status = newdata[[object$variable.names[3]]],
                         measurement.time = newdata[[object$variable.names[4]]],
                         t.star = newdata[[object$variable.names[2]]] - newdata[[object$variable.names[4]]])
 
+
+
   names(my.data) <- c(object$variable.names[1:4], "t.star")
   my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)], drop = FALSE])
 
-  #fit blups if needed
-  if(any(object$use.BLUP)){
-
-    for(i in 1:length(object$use.BLUP)){
-      if(object$use.BLUP[i]){
-
-        marker.name <- object$variable.names[i + 4]
-        # get fitted values for the marker in the training set
-        m1 <- object$marker.blup.fit[[i]]
-        tmp <-  get.lme.blup.fitted(my.data,
-                                    m1,
-                                    id = object$variable.names[1],
-                                    marker = marker.name,
-                                    measurement.time = object$variable.names[4])
-        names(tmp) <- paste0( marker.name,
-                              c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
-        newdata <- cbind(newdata, tmp)
-
-
-
-      }
-    }
-
-  }
-
-  #measurement times:
-
-
-  if(is.numeric(object$knots.measurement.time)){
-    ## spline for measurement time
-    meas.time.spline.basis <- object$meas.time.spline
-
-    meas.time.spline.basis <- ns(my.data[[object$variable.names[4]]],
-                                      knots = attr(meas.time.spline.basis, "knots"),
-                                      Boundary.knots = attr(meas.time.spline.basis, "Boundary.knots"),
-                                      df = object$knots.measurement.time)
-
-    #fit model using blups
-    xx <- as.data.frame(meas.time.spline.basis)
-    names(xx) = paste0("meas.time.spline.basis", 1:ncol(xx))
-    newdata <- cbind( newdata, xx)
-
-
-  }
+  #sort by measurement time
+  id <- object$variable.names[[1]]
+  measurement.time <-  object$variable.names[[4]]
+  my.data <- my.data %>% arrange_(id, measurement.time)
 
 
 
   #calculate risk
   # we calculate risk for the test set, last observation before conditioning time
-  id_name <-  object$variable.names[1]
-  measurement_name <- object$variable.names[4]
 
-  my.data$ind <- 1:nrow(my.data)
-
-  ind <- my.data %>%
-    group_by_(id_name) %>%
-    select( "ind",
-             !!id_name,
-             !!measurement_name) %>%
-    top_n(n  = 1) %>%
-    ungroup()
-
-  d.test.s.last.obs <- newdata[ind$ind, ]
-
+  newdata[["t.star"]] <-  newdata[[object$variable.names[2]]] - newdata[[object$variable.names[4]]]
   #return risk
-  aa <- summary(survfit( object$model.fit, newdata = d.test.s.last.obs, se.fit = F),
+  aa <- summary(survfit( object$model.fit, newdata = newdata, se.fit = F),
           times = prediction.time)
   aa <- as.data.frame(t(1-aa$surv))
   names(aa) <- paste0("risk_", prediction.time)
 
-   out <- cbind(d.test.s.last.obs, aa)
+   out <- bind_cols(newdata, aa)
 
   return(out)
 
@@ -407,121 +259,4 @@ predict.PC_cox <- function(object, newdata, prediction.time, ...){
 }
 
 
-
-#' Create a model frame for a PC model fit.
-#'
-#' Extract the model frame for a PC model fit that employed natural splines for measurement times or marker smoothing via BLUP estimates.
-#'
-#' @param object object of class 'PC_cox' fit using the 'PC.Cox' function
-#' @param newdata data.frame with new data for which to model frame components. All variables used to fit the PC.Cox model must be present. Observations with missing data will be removed.
-#'
-#' @return A data.frame copy of newdata with added columns showing BLUP estimates or spline bases for measurement time used to fit the PC cox model 'object'.
-#'
-#' @note if no BLUPs or natural splines are used in the fitting of PC model 'object', newdata will be returned with no addtional columns.
-#'
-#' @examples
-#'data(pc_data)
-#'
-#'
-#'#fit a model using natural cubic splines to model measurement time
-#'# and BLUPs to smooth marker measurements.
-#'pc.model.2 <-  PC.Cox(
-#'  id = "sub.id",
-#'  stime = "time",
-#'  status = "status",
-#'  measurement.time = "meas.time",
-#'  markers = c("marker", "marker_2"),
-#'  data = pc_data,
-#'  use.BLUP = c(TRUE, TRUE),
-#'  knots.measurement.time = 3)
-#'
-#'#BLUPs are used in this pc model so marker trajectory is needed for
-#'#BLUP estimation and risk prediction calculation
-#'PC.model.frame(pc.model.2, newdata = newdata.subj.6)
-#'
-#'
-#' @export
-
-PC.model.frame <- function(object, newdata, ...){
-
-  stopifnot(is.element(class(object), c("PC_cox", "PC_GLM")))
-
-  stopifnot(is.data.frame(newdata))
-  #check if newdata has the right variables
-  if(!all(is.element(object$variable.names, names(newdata)) )){
-    stop("variable(s): {", paste(object$names[which(!is.element(object$variable.names, names(newdata)))], collapse = ", "), "}, not found in 'newdata' ")
-  }
-
-
-  #only keep complete cases
-  mycomplete <- complete.cases(newdata[,object$variable.names]);
-
-  #check for missing data and throw it out, print a warning
-  if(nrow(newdata)!=sum(mycomplete)){
-    warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
-    newdata <- newdata[mycomplete,]
-
-  }
-  my.data <- data.frame(id = newdata[[object$variable.names[1]]],
-                        stime = newdata[[object$variable.names[2]]],
-                        status = newdata[[object$variable.names[3]]],
-                        measurement.time = newdata[[object$variable.names[4]]],
-                        t.star = newdata[[object$variable.names[2]]] - newdata[[object$variable.names[4]]])
-
-  names(my.data) <- c(object$variable.names[1:4], "t.star")
-  my.data <- cbind(my.data, newdata[,object$variable.names[-c(1:4)], drop = FALSE])
-
-  #fit blups if needed
-  if(any(object$use.BLUP)){
-
-    for(i in 1:length(object$use.BLUP)){
-      if(object$use.BLUP[i]){
-
-        marker.name <- object$variable.names[i + 4]
-        # get fitted values for the marker in the training set
-        m1 <- object$marker.blup.fit[[i]]
-
-        tmp <- get.lme.blup.fitted(my.data,
-                                   m1,
-                                   id = object$variable.names[1],
-                                   marker = marker.name,
-                                   measurement.time = object$variable.names[4])
-
-        names(tmp) <- paste0( marker.name,
-                              c("_BLUP_fitted","_BLUP_intercept", "_BLUP_slope"))
-        newdata <- cbind(newdata, tmp)
-
-      }
-    }
-
-  }else{
-
-  }
-
-  #measurement times:
-
-
-  if(is.numeric(object$knots.measurement.time)){
-    ## spline for measurement time
-    meas.time.spline.basis <- object$meas.time.spline
-
-    meas.time.spline.basis <- ns(my.data[[object$variable.names[4]]],
-                                 knots = attr(meas.time.spline.basis, "knots"),
-                                 Boundary.knots = attr(meas.time.spline.basis, "Boundary.knots"),
-                                 df = object$knots.measurement.time)
-
-    #fit model using blups
-    xx <- as.data.frame(meas.time.spline.basis)
-    names(xx) = paste0("meas.time.spline.basis", 1:ncol(xx))
-    newdata <- cbind( newdata, xx)
-
-
-  }
-
-
-  return(newdata)
-
-
-
-}
 

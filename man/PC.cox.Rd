@@ -4,9 +4,8 @@
 \alias{PC.Cox}
 \title{Fit a partly conditional Cox model}
 \usage{
-PC.Cox(id, stime, status, measurement.time, markers, data,
-  use.BLUP = rep(FALSE, length(markers)), type.BLUP = rep("fitted",
-  length(markers)), knots.measurement.time = NULL)
+PC.Cox(id, stime, status, measurement.time, predictors, data,
+  additional.formula.pars = NULL)
 }
 \arguments{
 \item{id}{name of numeric subject id in data}
@@ -17,15 +16,15 @@ PC.Cox(id, stime, status, measurement.time, markers, data,
 
 \item{measurement.time}{name of time of measurement from baseline.}
 
-\item{markers}{character vector consisting of marker names to include.}
-
 \item{data}{data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.}
+
+\item{markers}{character vector consisting of marker names to include.}
 
 \item{use.BLUP}{a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.}
 
 \item{type.BLUP}{a vector of length equal to use.BLUP, indicating which type of BLUP information from the mixed effects model to use in the PC model. Options are  'fitted' (default) which uses the fitted BLUP estimates, 'intercept' for the BLUP intercept, 'slope' for the  or 'intercept_slope', which adds the BLUP intercept and slope to the PC model. 'intercept_slope' adds two terms to the PC model for each marker with corresponding use.BLUP slot equal to TRUE.}
 
-\item{knots.measurement.time}{number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.}
+\item{knots.measurement.time}{number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, and measurement.time will be included as a linear predictor in the PC Cox model.}
 }
 \value{
 An object of class "PC_cox" which is a list containing:

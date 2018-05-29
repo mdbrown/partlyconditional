@@ -4,9 +4,7 @@
 \alias{PC.GLM}
 \title{Fit a partly conditional GLM (logistic) model}
 \usage{
-PC.GLM(id, stime, status, measurement.time, markers, data, prediction.time,
-  use.BLUP = rep(FALSE, length(markers)), type.BLUP = rep("fitted",
-  length(markers)), knots.measurement.time = NULL)
+PC.GLM(id, stime, status, measurement.time, predictors, data, prediction.time)
 }
 \arguments{
 \item{id}{name of numeric subject id in data}
@@ -17,11 +15,11 @@ PC.GLM(id, stime, status, measurement.time, markers, data, prediction.time,
 
 \item{measurement.time}{name of time of measurement from baseline.}
 
-\item{markers}{character vector consisting of marker names to include.}
-
 \item{data}{data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.}
 
 \item{prediction.time}{numeric value for the prediction time of interest to fit the PC logistic model.}
+
+\item{markers}{character vector consisting of marker names to include.}
 
 \item{use.BLUP}{a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.}
 
