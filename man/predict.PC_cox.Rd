@@ -14,55 +14,33 @@
 \item{prediction.time}{vector of prediction times (from marker measurement time) to estimate future risk. Prediction time is defined from time of measurement for each individual trajectory.}
 }
 \value{
-A data.frame consisting of one row for each individual (grouped by id), with predicted risk estimates at the final observed measurement time for each individuals' marker trajectory. Risks are estimated for each 'prediction.time' from the last measurement time observed for each individual. Marker measurements, BLUP point estimates and spline bases for measurement times (if applicable) are provided on each observation as well.
+A data.frame matching that of newdata but with extra columns containing predicted risk estimates (one for each prediction.time). Risks are estimated for each 'prediction.time' from the measurement time observed on each row.
 }
 \description{
 Estimate predicted absolute n-year risk from a PC.Cox model object.
 }
-\note{
-Marker measurements repeated over time are only needed for PC models fit using smoothed BLUP marker values, otherwise, just providing the most recent marker measurements is adequate.
-}
 \examples{
 data(pc_data)
+
+pc_data$log.meas.time <- log10(pc_data$meas.time + 1)
 
 pc.model.1 <-  PC.Cox(
  id = "sub.id",
  stime = "time",
  status = "status",
- measurement.time = "log.meas.time",
- markers = c("marker", "marker_2"),
- data = pc_data,
- use.BLUP = c(FALSE, FALSE),
- urement.time = NA)
+ measurement.time = "meas.time",
+ predictors = c("log.meas.time", "marker_1", "marker_2"),
+ data = pc_data)
 
 pc.model.1
 
 newdata.subj.6 <- pc_data[pc_data$sub.id ==6,]
-#last marker measured at time '54', so predictions
-#will be conditional on surviving to time '54'
-newdata.subj.6
 
-#estimate 12 and 24 month risk from month 54
-#this pc model doesn't include BLUPs, so only the final marker
-#measurements are considered.
-predict(pc.model.1, newdata = newdata.subj.6, prediction.time = c(12, 24))
+#estimate 12 and 24 month risk for each measurement time
+predict(pc.model.1,
+       newdata = newdata.subj.6,
+       prediction.time = c(12, 24))
 
-
-#fit a model using natural cubic splines to model measurement time
-# and BLUPs to smooth marker measurements.
-pc.model.2 <-  PC.Cox(
- id = "sub.id",
- stime = "time",
- status = "status",
- measurement.time = "meas.time",
- markers = c("marker", "marker_2"),
- data = pc_data,
- use.BLUP = c(TRUE, TRUE),
- urement.time = 3)
-
-#BLUPs are used in this pc model so marker trajectory is needed for
-#BLUP estimation and risk prediction calculation
-predict(pc.model.2, newdata = newdata.subj.6, prediction.time = c(12, 24))
 
 
 }

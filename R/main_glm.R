@@ -2,7 +2,7 @@
 
 #' Fit a partly conditional GLM (logistic) model
 #'
-#' Fit a partly conditional (PC) logistic model. PC models are helpful predictive tools for (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods model the risk of an adverse event conditional on survival up to a landmark time and information accrued by that time. Methods to smooth markers through time using mixed effect models and BLUP estimates are also implemented.
+#' Fit a partly conditional (PC) logistic model. PC models are helpful predictive tools for (medical) contexts where long-term follow-up is available and interest lies in predicting patients’ risks for a future adverse outcome using repeatedly measured predictors over time. These methods model the risk of an adverse event conditional on survival up to a landmark time and information accrued by that time.
 #'
 #' @param id name of numeric subject id in data
 #' @param stime name of survival time, may be repeated across subj. id.
@@ -11,56 +11,37 @@
 #' @param markers character vector consisting of marker names to include.
 #' @param data data.frame with id, stime, status, measurement time  and marker variables. Observations with missing data will be removed.
 #' @param prediction.time numeric value for the prediction time of interest to fit the PC logistic model.
-#' @param use.BLUP a vector of logical variables, indicating for each marker whether best linear unbiased predictors (BLUPs) should be calculated. If true, a mixed effect model of the form `lme(marker ~ 1 + measurement.time, random = ~ 1 + measurement.time | id)`, will be fit univariately for each marker.
-#' @param type.BLUP a vector of length equal to use.BLUP, indicating which type of BLUP information from the mixed effects model to use in the PC model. Options are  'fitted' (default) which uses the fitted BLUP estimates, 'intercept' for the BLUP intercept, 'slope' for the  or 'intercept_slope', which adds the BLUP intercept and slope to the PC model. 'intercept_slope' adds two terms to the PC model for each marker with corresponding use.BLUP slot equal to TRUE.
-#' @param knots.measurement.time number of knots to use when modeling measurement.time using natural cubic splines (using function `ns`) in the PC Cox model. Set to 'NA' if no splines are to be used, which measurement.time will be included as a linear predictor in the PC Cox model.
-#'
 #'
 #' @return
-#'
-#' a 'PC_GLM' model fit object, with elements
-#'
-#'  #' @return
 #'
 #' An object of class "PC_GLM" which is a list containing:
 #'
 #' \item{model.fit }{ A 'glm' object . Please note that the estimates of standard error associated with the model coefficients DO NOT incorporate the variation due to marker smoothing using BLUPs. }
-#' \item{marker.blup.fit }{ A list of length equal to the number of markers. For each index where use.BLUP is TRUE, this list contains the 'nmle' object fit for the corresponding marker. }
-#' \item{meas.time.spline}{ If knots.measurement.time is set, the measurement time spline basis matrix output from function 'ns'.  }
-#' \item{call, variable.names, prediction.time, use.BLUP, knots.measurement.time}{Inputs from function call. }
+#' \item{variable.names }{vector of variable names used to fit the model. }
+#' \item{call}{Function call. }
+#'#'#' \item{ prediction.time}{Inputs from function call. }
 #'
 #' @examples
 #' data(pc_data)
+#'#'#log transform measurement time for use in models.
+#'pc_data$log.meas.time <- log10(pc_data$meas.time + 1)
 #'
 #' pc.glm.1 <-  PC.GLM(
 #'  id = "sub.id",
 #'  stime = "time",
 #'  status = "status",
-#'  measurement.time = "log.meas.time",
-#'  markers = c("marker_1", "marker_2"),
+#'  measurement.time = "meas.time",
+#'  predictors = c("log.meas.time", "marker_1", "marker_2"),
 #'  prediction.time = 24,
-#'  data = pc_data,
-#'  knots.measurement.time = NA) #no spline used
+#'  data = pc_data)
 #'
 #' pc.glm.1
 #'
-#'pc.glm.1$model.fit #direct access to the coxph model object
+#'pc.glm.1$model.fit #direct access to the glm model object
 #'
-#'#fit a model using natural cubic splines to model measurement time
-#'# and BLUPs to smooth marker measurements.
-#' pc.glm.2 <-  PC.GLM(
-#'  id = "sub.id",
-#'  stime = "time",
-#'  status = "status",
-#'  measurement.time = "meas.time",
-#'  markers = c("marker_1", "marker_2"),
-#'  use.BLUP = c(TRUE, TRUE),
-#'  prediction.time = 24,
-#'  data = pc_data,
-#'  knots.measurement.time = 3) #spline with three knots
+#'#see function BLUP to fit mixed effects models and obtain BLUP-smoothed predictors.
 #'
-#' pc.glm.2
-#'
+#' @seealso \code{\link[partlyconditional]{BLUP}} \code{\link[partlyconditional]{PC.Cox}}
 #' @import dplyr
 #' @import survival
 #' @importFrom nlme lme

@@ -1,6 +1,6 @@
 ---
 title: "Tutorial for R package `partlyconditional`"
-date: "Feb 20, 2018"
+date: "March 29, 2018"
 output: 
   html_document: 
     keep_md: yes
@@ -387,7 +387,11 @@ Calling `predict` on a pc-model object generates estimates of risk at a future t
 risk.cox <- predict(pc.cox.2, 
                     newdata = newd, 
                     prediction.time = c(12, 24))
-risk.cox
+
+#only select a few columns for better printing 
+risk.cox[, c("sub.id", "meas.time", 
+             "marker_1", "marker_2", 
+             "risk_12", "risk_24" )]
 ```
 
 We see in the function outputs a data.frame matching `newdata` with new added columns `risk_12`  and `risk_24`. These columns provide the risk of experiencing the event of interested within 12 and 24 months (resp.) for each individual conditional on surviving to the marker measurement recorded for that row. For example, subject 3 has an estimated 12 month risk of ~29.8% conditional on surviving 18 months from baseline, whereas subject 9 has a 12 month risk of ~24.2% conditional on surviving 12 months from baseline. 
@@ -400,7 +404,10 @@ Making predictions for a PC GLM model is similar, except that the prediction tim
 risk.glm  <- predict(pc.glm.2, 
                       newdata  = newd)
 
-risk.glm
+#only select a few columns for better printing
+risk.glm[, c("sub.id", "meas.time", 
+             "marker_1_blup", "marker_2", 
+             "risk_12" )] 
 ```
 
 

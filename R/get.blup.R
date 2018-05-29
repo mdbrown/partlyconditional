@@ -122,8 +122,8 @@ get.lme.blup.fitted <- function(data, lf, id, marker,
 
 
   return(list(fitted = yi.hat,
-              fixed = fixed,
-              random = random
+              fixed = as.data.frame(fixed),
+              random = as.data.frame(random)
                     #, blup.slope = myslopes
                     ))
 }
