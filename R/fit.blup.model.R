@@ -22,6 +22,7 @@
 #'
 #'
 #' @importFrom nlme lme
+#' @importFrom nlme lmeControl
 #' @importFrom nlme VarCorr
 #' @export
 
@@ -29,13 +30,22 @@ BLUP <- function( marker, measurement.time, fixed, random = NULL, id, data){
   #checks
   stopifnot(is.data.frame(data))
   #make sure marker.name, fixed.effects and random.effects are in data
-  #stopifnot(is.element(marker.name, names(data)))
-  #stopifnot(is.element(random.effects, names(data)))
-  #stopifnot(is.element(fixed.effects, names(data)))
 
-  #stopifnot(is.numeric(data[[marker.name]]))
+  tmpnames <- c(id, marker, measurement.time, fixed, random )
+  if(!all(is.element(tmpnames, names(data)))) stop(paste("'", tmpnames[which(!is.element(tmpnames, names(data)))], "' cannot be found in data.frame provided", sep = ""))
+
+  #only keep complete cases
+  mycomplete <- complete.cases(data[,tmpnames]);
+
+  #check for missing data and throw it out, print a warning
+  if(nrow(data)!=sum(mycomplete)){
+    warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
+    data.cc <- data[mycomplete,]
+  }
 
   #throw out missing data....print warning
+
+
 
   #end checks
 
@@ -58,7 +68,11 @@ BLUP <- function( marker, measurement.time, fixed, random = NULL, id, data){
                                                paste(random, collapse = " + ")))
   }
   #fit nmle model
-  blup.model <- try(lme(fixed = fixed.formula, data = data, random = random.formula))
+
+  blup.model <- try(lme(fixed = fixed.formula,
+                        data = data.cc,
+                        random = random.formula,
+                        control = lmeControl(opt = "optim")))
 
   #need to sort by measurement.time before calling get.lme.blup.fitted
   data$orig_order <- 1:dim(data)[1]

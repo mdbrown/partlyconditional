@@ -21,9 +21,14 @@ get.lme.blup.fitted <- function(data, lf, id, marker,
   # outcome
   yi <- matrix(data[[marker]], ncol = 1)
   # fixed effects
+
+  current.na.action = options("na.action")
+  options(na.action = "na.pass")
+
   xi <- model.matrix(fixed, data)
   # random effects
   zi <- model.matrix(random, data)
+  options(na.action = current.na.action$na.action)
 
   # get the beta hat and variance estimates from the lme fit (lf)
   beta.hat <- as.matrix(lf$coeff$fixed, ncol = 1)
@@ -68,6 +73,7 @@ get.lme.blup.fitted <- function(data, lf, id, marker,
     ix.curr <- data[[id]] == sub.ids[i]
     n.curr <- sum(ix.curr)
     yi.curr <- matrix(yi[ix.curr], ncol = 1)
+
     xi.curr <- xi[ix.curr, ,drop = FALSE ]
     zi.curr <- zi[ix.curr, , drop = FALSE ]
 

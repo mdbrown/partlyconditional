@@ -101,7 +101,7 @@ PC.Cox <- function( id,
   #remove any observations with survival time less than meas.time
   wonky.times <- data[[tmpnames[2]]] < data[[tmpnames[4]]]
   if(any(wonky.times)) {
-    cat(paste0("... removing ",  sum(wonky.times) , " observations where ", tmpnames[2], " is greater than outcome variable ", tmpnames[4], ".\n"))
+    cat(paste0("... removing ",  sum(wonky.times) , " observations where outcome time", tmpnames[2], " is less than measurement time ", tmpnames[4], ".\n"))
   }
   data <- data[!wonky.times,]
 

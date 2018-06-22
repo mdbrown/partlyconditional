@@ -6,7 +6,8 @@ carry_forward <- function(data, id, measurement.time, new.times){
 
    data <- data %>%
      group_by_(id) %>%
-     do(pc_add_row(., id = id, measurement.time, new.times = new.times))
+     do(pc_add_row(., id = id, measurement.time, new.times = new.times)) %>%
+     ungroup()
 
    #sort by measurement time
    data <- data %>% arrange_(id, measurement.time)
