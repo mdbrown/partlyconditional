@@ -40,7 +40,7 @@ BLUP <- function( marker, measurement.time, fixed, random = NULL, id, data){
   #check for missing data and throw it out, print a warning
   if(nrow(data)!=sum(mycomplete)){
     warning(paste(nrow(data)-sum(mycomplete), "observation(s) were removed due to missing data \n New sample size is now:", sum(mycomplete)))
-    data.cc <- data[mycomplete,]
+    data <- data[mycomplete,]
   }
 
   #throw out missing data....print warning
@@ -70,7 +70,7 @@ BLUP <- function( marker, measurement.time, fixed, random = NULL, id, data){
   #fit nmle model
 
   blup.model <- try(lme(fixed = fixed.formula,
-                        data = data.cc,
+                        data = data,
                         random = random.formula,
                         control = lmeControl(opt = "optim")))
 
